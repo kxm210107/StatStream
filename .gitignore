@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pkl
+*.db
+
+# PyCharm
+.idea/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/src/node_modules/
+
+# Environment
+.env

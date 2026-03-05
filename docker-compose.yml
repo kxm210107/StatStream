@@ -1,0 +1,33 @@
+# docker-compose.yml (root of StatStream/)
+
+services:
+
+  backend:
+    build: ./backend
+    ports:
+      - '8000:8000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/statstream_db
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=statstream_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+volumes:
+  pgdata:
+
+
+# Run everything:
+# docker compose up --build
+
+# Stop everything:
+# docker compose down

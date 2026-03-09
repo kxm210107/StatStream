@@ -94,7 +94,7 @@ class TestGetUpcomingGames:
 
     @pytest.fixture(autouse=True)
     def patch_league_schedule(self, monkeypatch):
-        import nba_api.stats.endpoints.leagueschedule as _ls
+        import leagueschedule_compat as _ls
         monkeypatch.setattr(_ls, "LeagueSchedule", lambda **kwargs: FakeLeagueSchedule())
 
     def test_returns_200(self, client):
@@ -138,7 +138,7 @@ class TestGetUpcomingGamesErrorHandling:
 
     @pytest.fixture(autouse=True)
     def patch_league_schedule_error(self, monkeypatch):
-        import nba_api.stats.endpoints.leagueschedule as _ls
+        import leagueschedule_compat as _ls
         def _boom(**kwargs):
             raise RuntimeError("nba_api down")
         monkeypatch.setattr(_ls, "LeagueSchedule", _boom)

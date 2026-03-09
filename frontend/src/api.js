@@ -44,3 +44,30 @@ export async function fetchTeamComparison(team1, team2, home, season = '2024-25'
   if (!res.ok) throw new Error('Failed to compare teams');
   return res.json();
 }
+
+export async function searchPlayers(q) {
+  const res = await fetch(`${BASE_URL}/players/search?q=${encodeURIComponent(q)}`);
+  if (!res.ok) throw new Error('Search failed');
+  return res.json();
+}
+
+export async function fetchPlayoffSimulation(season = '2024-25', nSims = 5000) {
+  const res = await fetch(`${BASE_URL}/playoff/simulate?season=${season}&n_sims=${nSims}`);
+  if (!res.ok) throw new Error('Simulation failed');
+  return res.json();
+}
+
+export async function fetchTeamDashboard(team, season = '2024-25') {
+  const res = await fetch(
+    `${BASE_URL}/teams/${team}/dashboard?season=${season}`
+  );
+  if (!res.ok) throw new Error('Team dashboard failed');
+  return res.json();
+}
+
+export async function fetchTeamSchedule(team) {
+  const res = await fetch(`${BASE_URL}/teams/${team}/schedule`);
+  if (!res.ok) return [];
+  return res.json();
+}
+

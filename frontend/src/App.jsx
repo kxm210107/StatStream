@@ -1,63 +1,98 @@
 import { useState, useEffect } from 'react';
-import PlayerTable  from './components/PlayerTable';
-import TopScorers   from './components/TopScorers';
-import PlayerSearch from './components/PlayerSearch';
-import TeamComparer from './components/TeamComparer';
-import { fetchSeasons } from './api';
+import { LayoutGrid, Trophy, Search, Zap, Award, Activity } from 'lucide-react';
+import PlayerTable            from './components/PlayerTable';
+import TopScorers             from './components/TopScorers';
+import PlayerSearch           from './components/PlayerSearch';
+import TeamComparer           from './components/TeamComparer';
+import PlayoffSimulator       from './components/PlayoffSimulator';
+import PlayoffBracket         from './components/PlayoffBracket';
+import { TubelightNavbar }    from './components/ui/TubelightNavbar';
+import { fetchSeasons }       from './api';
+import logoSrc                from './assets/logo.png';
 
+// ── Tab definitions ───────────────────────────────────────────────────────────
+// Icons are pre-rendered elements; TubelightNavbar renders them as-is.
 const TABS = [
-  { id: 'Roster',       label: '🏀 Roster'        },
-  { id: 'Top Scorers',  label: '📊 Top Scorers'   },
-  { id: 'Team Search',  label: '🔍 Team Search'   },
-  { id: 'Team Comparer',label: '⚡ Team Comparer'  },
+  { id: 'Team Search',   label: 'Team Search',   icon: <Search     size={16} strokeWidth={2.5} /> },
+  { id: 'Live',          label: 'Live',           icon: <Activity   size={16} strokeWidth={2.5} /> },
+  { id: 'Roster',        label: 'Roster',         icon: <LayoutGrid size={16} strokeWidth={2.5} /> },
+  { id: 'Top Scorers',   label: 'Top Scorers',    icon: <Trophy     size={16} strokeWidth={2.5} /> },
+  { id: 'Team Comparer', label: 'Team Comparer',  icon: <Zap        size={16} strokeWidth={2.5} /> },
+  { id: 'Playoffs',      label: 'Playoffs',       icon: <Award      size={16} strokeWidth={2.5} /> },
 ];
 
 export default function App() {
-  const [activeTab,    setActiveTab   ] = useState('Roster');
+  const [activeTab,    setActiveTab   ] = useState('Team Search');
   const [seasons,      setSeasons     ] = useState([]);
-  const [activeSeason, setActiveSeason] = useState('2024-25');
+  const [activeSeason, setActiveSeason] = useState(null);
 
-  // Fetch available seasons on mount
   useEffect(() => {
     fetchSeasons()
       .then(data => {
         if (data.length > 0) {
           setSeasons(data);
-          setActiveSeason(data[0]);   // newest season first
+          setActiveSeason(data[0]);
         }
       })
       .catch(() => {
-        // DB not yet populated — keep default 2024-25
-        setSeasons(['2024-25']);
+        setSeasons(['2025-26', '2024-25']);
+        setActiveSeason('2025-26');
       });
   }, []);
 
   return (
-    <div style={{ padding: '32px 40px', minHeight: '100vh' }}>
+    /*
+     * Top padding (88px) pushes content below the fixed TubelightNavbar
+     * dock (≈ 56px pill + 20px paddingTop + ~12px breathing room).
+     */
+    <div style={{ padding: '160px 40px 32px', minHeight: '100vh' }}>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 6px #4ADE80; }
+          50% { opacity: 0.5; box-shadow: 0 0 12px #4ADE80; }
+        }
+      `}</style>
 
       {/* ── Header ── */}
-      <header style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <h1 style={{
-            fontSize: 32, fontWeight: 800, letterSpacing: '-0.5px',
-            background: 'linear-gradient(90deg, #00D4FF 0%, #7C3AED 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            margin: 0,
+      <header style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+          {/* Left: title + badge + dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          {/* Brand mark */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 38, fontWeight: 400, letterSpacing: '0.06em',
+              color: '#F0F4FB',
+              margin: 0,
+              lineHeight: 1,
+              textTransform: 'uppercase',
+            }}>
+              StatStream
+            </h1>
+          </div>
+
+          {/* NBA badge */}
+          <span style={{
+            fontSize: 9, fontWeight: 800, letterSpacing: '0.2em',
+            color: 'var(--accent)', border: '1px solid rgba(255,255,255,0.4)',
+            borderRadius: 4, padding: '3px 8px', textTransform: 'uppercase',
+            background: 'rgba(255,255,255,0.06)',
           }}>
-            StatStream
-          </h1>
+            NBA Analytics
+          </span>
 
           {/* Season dropdown */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', marginLeft: 4 }}>
             <select
               value={activeSeason}
               onChange={e => setActiveSeason(e.target.value)}
               style={{
-                background: 'rgba(0,212,255,0.10)',
-                color: '#00D4FF',
-                border: '1px solid rgba(0,212,255,0.30)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-light)',
                 borderRadius: 20,
-                padding: '3px 28px 3px 10px',
+                padding: '4px 28px 4px 12px',
                 fontSize: 11,
                 fontWeight: 700,
                 letterSpacing: '0.08em',
@@ -67,84 +102,76 @@ export default function App() {
                 WebkitAppearance: 'none',
                 colorScheme: 'dark',
                 outline: 'none',
+                transition: 'border-color 0.2s',
               }}
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
             >
-              {seasons.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
+              {seasons.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            {/* custom chevron */}
             <span style={{
-              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-              pointerEvents: 'none', color: '#00D4FF', fontSize: 8,
+              position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)',
+              pointerEvents: 'none', color: 'var(--text-muted)', fontSize: 8,
             }}>▼</span>
           </div>
+          </div> {/* end left group */}
+
+
         </div>
-        <p style={{ color: 'var(--text-muted)', marginTop: 4, fontSize: 14 }}>
-          NBA Analytics Dashboard
+        <p style={{ color: 'var(--text-muted)', marginTop: 8, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+            background: '#4ADE80',
+            boxShadow: '0 0 6px #4ADE80',
+            animation: 'pulse 2s ease infinite',
+          }} />
+          Live NBA data · {activeSeason} Season
         </p>
       </header>
 
-      {/* ── Tab Navigation ── */}
-      <nav style={{
-        display: 'flex', gap: 6, marginBottom: 24,
-        background: 'rgba(11, 16, 32, 0.7)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid var(--border-light)',
-        borderRadius: 12, padding: 5,
-        width: 'fit-content',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-      }}>
-        {TABS.map(({ id, label }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: 8,
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: 13,
-                fontFamily: 'inherit',
-                transition: 'all 0.18s ease',
-                background: active ? '#00D4FF' : 'transparent',
-                color:      active ? '#000'    : 'var(--text-secondary)',
-                boxShadow:  active ? '0 2px 8px rgba(0,212,255,0.35)' : 'none',
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </nav>
+      {/* ── S Logo — fixed top-left corner ── */}
+      <img
+        src={logoSrc}
+        alt="StatStream logo"
+        style={{
+          position: 'fixed', top: 0, left: 18, zIndex: 51,
+          width: 180, height: 180, objectFit: 'contain',
+        }}
+      />
 
       {/* ── Content Panel ── */}
       <main style={{
-        background: 'rgba(11, 16, 32, 0.75)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'var(--bg-card)',
         borderRadius: 16,
         border: '1px solid var(--border-light)',
+        borderTop: '2px solid rgba(255,255,255,0.15)',
         padding: 28,
         minHeight: 400,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.02) inset, 0 24px 64px rgba(0,0,0,0.5)',
       }}>
         <div className="fade-in" key={activeTab + activeSeason}>
-          {activeTab === 'Roster'        && <PlayerTable  season={activeSeason} />}
-          {activeTab === 'Top Scorers'   && <TopScorers   season={activeSeason} />}
-          {activeTab === 'Team Search'   && <PlayerSearch season={activeSeason} />}
-          {activeTab === 'Team Comparer' && <TeamComparer season={activeSeason} />}
+          {!activeSeason && <div className="spinner" />}
+          {activeSeason && activeTab === 'Roster'        && <PlayerTable      season={activeSeason} />}
+          {activeSeason && activeTab === 'Top Scorers'   && <TopScorers       season={activeSeason} />}
+          {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} />}
+          {activeSeason && activeTab === 'Team Comparer' && <TeamComparer     season={activeSeason} />}
+          {activeTab === 'Live' && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Loading Live…</div>}
+          {activeSeason && activeTab === 'Playoffs'      && <PlayoffSimulator season={activeSeason} />}
         </div>
       </main>
 
       {/* ── Footer ── */}
-      <footer style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: 12 }}>
-        Data via NBA Stats API · Built with React + FastAPI
+      <footer style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.05em' }}>
+        Data via NBA Stats API · Built with React + FastAPI · {new Date().getFullYear()}
       </footer>
+
+
+      {/* ── Tubelight Navbar — fixed floating dock at bottom ── */}
+      <TubelightNavbar
+        items={TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
     </div>
   );

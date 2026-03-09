@@ -71,3 +71,20 @@ def predict(home_score: int, away_score: int, period: int, clock: str) -> tuple[
     # Clamp and return
     home_prob = max(0.01, min(0.99, home_prob))
     return round(home_prob, 4), round(1 - home_prob, 4)
+
+
+# NBA home teams win ~58% historically → +0.08 boost over a neutral 0.50 baseline
+_HOME_COURT_BOOST = 0.08
+
+
+def pregame_predict(home_win_pct: float, away_win_pct: float) -> tuple[float, float]:
+    """
+    Returns (home_win_probability, away_win_probability) for a not-yet-started game.
+    Uses the Log5 formula (Bill James) with a home-court advantage boost.
+    """
+    h = max(0.01, min(0.99, home_win_pct + _HOME_COURT_BOOST))
+    a = max(0.01, min(0.99, away_win_pct))
+    denom = h + a - 2 * h * a
+    home_prob = (h - h * a) / denom if denom != 0 else 0.5
+    home_prob = max(0.01, min(0.99, home_prob))
+    return round(home_prob, 4), round(1 - home_prob, 4)

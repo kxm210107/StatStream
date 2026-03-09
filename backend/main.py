@@ -1019,6 +1019,12 @@ def get_live_probabilities():
 
     games = live_games.fetch_live_games()
 
+    # Build win-pct lookup for pregame probability
+    import datetime as _dt
+    _season = (lambda t: f"{t.year-1}-{str(t.year)[2:]}" if t.month < 10 else f"{t.year}-{str(t.year+1)[2:]}")(_dt.date.today())
+    _standings = _fetch_live_standings(_season)
+    _win_pct = {s["team"]: s["win_pct"] for s in _standings} if _standings else {}
+
     result = []
     for g in games:
         period = g["period"]
@@ -1026,7 +1032,9 @@ def get_live_probabilities():
         is_upcoming = g["status"] == "Upcoming"
 
         if is_upcoming:
-            home_prob, away_prob = None, None
+            home_pct = _win_pct.get(g["home_team"]["abbr"], 0.5)
+            away_pct = _win_pct.get(g["away_team"]["abbr"], 0.5)
+            home_prob, away_prob = win_probability.pregame_predict(home_pct, away_pct)
         else:
             home_score = g["home_team"]["score"]
             away_score = g["away_team"]["score"]
@@ -1046,7 +1054,7 @@ def get_live_probabilities():
                 "win_probability": away_prob,
             },
             "last_updated": g["last_updated"],
-            "model_type": "logistic",
+            "model_type": "pregame_log5" if is_upcoming else "logistic",
         }
         if is_upcoming:
             entry["date"] = g.get("date", "")

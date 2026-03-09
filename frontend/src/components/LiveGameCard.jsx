@@ -219,8 +219,8 @@ export default function LiveGameCard({ game, selected, onClick }) {
 
       </div>
 
-      {/* Win probability bar — live games only */}
-      {isLive && home.win_probability != null && (
+      {/* Win probability bar — live and pregame */}
+      {home.win_probability != null && (
         <div style={{ marginTop: 14 }}>
           <WinProbabilityBar
             homeProb={home.win_probability}

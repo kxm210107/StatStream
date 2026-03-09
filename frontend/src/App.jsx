@@ -7,6 +7,7 @@ import TeamComparer           from './components/TeamComparer';
 import PlayoffSimulator       from './components/PlayoffSimulator';
 import PlayoffBracket         from './components/PlayoffBracket';
 import { TubelightNavbar }    from './components/ui/TubelightNavbar';
+import LiveWinProbability from './components/LiveWinProbability';
 import { fetchSeasons }       from './api';
 import logoSrc                from './assets/logo.png';
 
@@ -155,7 +156,7 @@ export default function App() {
           {activeSeason && activeTab === 'Top Scorers'   && <TopScorers       season={activeSeason} />}
           {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} />}
           {activeSeason && activeTab === 'Team Comparer' && <TeamComparer     season={activeSeason} />}
-          {activeTab === 'Live' && <div style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>Loading Live…</div>}
+          {activeTab === 'Live' && <LiveWinProbability />}
           {activeSeason && activeTab === 'Playoffs'      && <PlayoffSimulator season={activeSeason} />}
         </div>
       </main>

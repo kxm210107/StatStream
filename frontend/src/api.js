@@ -71,3 +71,14 @@ export async function fetchTeamSchedule(team) {
   return res.json();
 }
 
+export async function getLiveGames() {
+  const res = await fetch(`${BASE_URL}/games/live`);
+  if (!res.ok) throw new Error('Failed to fetch live games');
+  return res.json();
+}
+
+export async function getLiveGamesWithProbabilities() {
+  const res = await fetch(`${BASE_URL}/games/live/probabilities`);
+  if (!res.ok) throw new Error('Failed to fetch live probabilities');
+  return res.json();
+}

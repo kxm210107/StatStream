@@ -17,6 +17,7 @@ import models, schemas, predictor
 import live_games
 import win_probability
 import live_cache
+import lineup_impact
 import leagueschedule_compat as _lsched
 from database import engine, SessionLocal
 
@@ -876,6 +877,33 @@ def team_dashboard(team_abbr: str, season: str = "2024-25"):
 
     _dashboard_cache[cache_key] = {'data': result, 'ts': time.time()}
     return result
+
+
+# ==========================================
+# ENDPOINT: Team Lineup Impact Analysis
+# GET /teams/{abbr}/lineups
+# ==========================================
+@app.get("/teams/{abbr}/lineups", response_model=schemas.LineupResponse)
+async def get_team_lineups(
+    abbr:        str,
+    season:      str   = "2025-26",
+    min_minutes: float = 20.0,
+    sort_by:     str   = "net_rating",
+    limit:       int   = 20,
+):
+    try:
+        data = lineup_impact.get_lineup_summaries(
+            team_abbr=abbr,
+            season=season,
+            min_minutes=min_minutes,
+            sort_by=sort_by,
+            limit=limit,
+        )
+        return data
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch lineup data: {exc}")
 
 
 # ==========================================

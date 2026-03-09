@@ -14,10 +14,21 @@ function to24h(timeStr) {
   return `${String(h).padStart(2, '0')}:${String(m24).padStart(2, '0')}:00`;
 }
 
+function etOffset(dateStr) {
+  // US DST: 2nd Sunday of March 02:00 ET → 1st Sunday of November 02:00 ET
+  const year = new Date(dateStr).getFullYear();
+  const mar = new Date(year, 2, 1);
+  mar.setDate(1 + (7 - mar.getDay()) % 7 + 7); // 2nd Sunday of March
+  const nov = new Date(year, 10, 1);
+  nov.setDate(1 + (7 - nov.getDay()) % 7);      // 1st Sunday of November
+  const d = new Date(dateStr);
+  return d >= mar && d < nov ? '-04:00' : '-05:00';
+}
+
 function parseTipoffMs(dateStr, timeStr) {
   try {
     const cleaned = timeStr.replace(/\s*ET$/i, '').trim();
-    const tipoff = new Date(`${dateStr}T${to24h(cleaned)}`);
+    const tipoff = new Date(`${dateStr}T${to24h(cleaned)}${etOffset(dateStr)}`);
     return tipoff.getTime() - Date.now();
   } catch {
     return null;
@@ -70,14 +81,14 @@ function ScoreCell({ home, away }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 120, justifyContent: 'center' }}>
       <span style={{
         fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
-        color: away.score > home.score ? 'var(--text-primary)' : 'var(--text-secondary)',
+        color: away.score >= home.score ? 'var(--text-primary)' : 'var(--text-secondary)',
       }}>
         {away.score}
       </span>
       <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>VS</span>
       <span style={{
         fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
-        color: home.score > away.score ? 'var(--text-primary)' : 'var(--text-secondary)',
+        color: home.score >= away.score ? 'var(--text-primary)' : 'var(--text-secondary)',
       }}>
         {home.score}
       </span>
@@ -100,10 +111,11 @@ function TipoffCell({ timeStr }) {
 
 export default function LiveGameCard({ game, selected, onClick }) {
   const { home_team: home, away_team: away } = game;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const isLive     = game.status !== 'Upcoming';
   const isToday    = game.date === todayStr;
-  const isTomorrow = !isLive && !isToday;
+  const isTomorrow = !isLive && game.date === tomorrowStr;
 
   return (
     <div

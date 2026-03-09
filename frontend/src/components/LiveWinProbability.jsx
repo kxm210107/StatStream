@@ -14,7 +14,6 @@ export default function LiveWinProbability() {
   const [upcomingError,  setUpcomingError  ] = useState(null);
   const [lastUpdated,    setLastUpdated   ] = useState(null);
   const [selectedId,     setSelectedId    ] = useState(null);
-  const [teamFilter,     setTeamFilter    ] = useState('ALL');
   const intervalRef = useRef(null);
 
   const fetchGames = async () => {
@@ -48,15 +47,6 @@ export default function LiveWinProbability() {
     intervalRef.current = setInterval(fetchGames, POLL_INTERVAL_MS);
     return () => clearInterval(intervalRef.current);
   }, []);
-
-  // Build sorted list of unique team abbreviations for the filter dropdown
-  const teamOptions = ['ALL', ...Array.from(
-    new Set(upcoming.flatMap(g => [g.home_team.abbr, g.away_team.abbr]))
-  ).sort()];
-
-  const filteredUpcoming = teamFilter === 'ALL'
-    ? upcoming
-    : upcoming.filter(g => g.home_team.abbr === teamFilter || g.away_team.abbr === teamFilter);
 
   return (
     <div>
@@ -115,11 +105,7 @@ export default function LiveWinProbability() {
         </div>
       )}
       {!loading && games.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: 16,
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {games.map(game => (
             <LiveGameCard
               key={game.game_id}
@@ -133,7 +119,7 @@ export default function LiveWinProbability() {
 
       {/* ── Upcoming section ── */}
       <div style={{ marginTop: 48 }}>
-        {/* Upcoming header + filter */}
+        {/* Upcoming header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{
             fontFamily: 'var(--font-display)', fontSize: 22,
@@ -142,29 +128,6 @@ export default function LiveWinProbability() {
           }}>
             Upcoming Games
           </h2>
-
-          {!upcomingLoading && upcoming.length > 0 && (
-            <select
-              value={teamFilter}
-              onChange={e => setTeamFilter(e.target.value)}
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-light)',
-                borderRadius: 8,
-                color: 'var(--text-primary)',
-                fontSize: 12,
-                fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.08em',
-                padding: '6px 10px',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              {teamOptions.map(t => (
-                <option key={t} value={t}>{t === 'ALL' ? 'All Teams' : t}</option>
-              ))}
-            </select>
-          )}
         </div>
 
         {/* Upcoming loading */}
@@ -186,22 +149,18 @@ export default function LiveWinProbability() {
         )}
 
         {/* Upcoming empty state */}
-        {!upcomingLoading && !upcomingError && filteredUpcoming.length === 0 && (
+        {!upcomingLoading && !upcomingError && upcoming.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, letterSpacing: '0.06em' }}>
-              {teamFilter === 'ALL' ? 'No upcoming games in the next 7 days.' : `No upcoming games for ${teamFilter}.`}
+              No games tomorrow.
             </p>
           </div>
         )}
 
-        {/* Upcoming game grid */}
-        {!upcomingLoading && !upcomingError && filteredUpcoming.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: 16,
-          }}>
-            {filteredUpcoming.map(game => (
+        {/* Upcoming game list */}
+        {!upcomingLoading && !upcomingError && upcoming.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {upcoming.map(game => (
               <LiveGameCard
                 key={game.game_id}
                 game={game}

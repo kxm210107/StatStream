@@ -56,13 +56,13 @@ def _make_fake_df(games: list):
     return pd.DataFrame(rows)
 
 
-# Two games 3 and 6 days from today
+# Two games both 1 day from today (tomorrow)
 import datetime as _dt
 _today = _dt.date.today()
 FAKE_SCHEDULE_ROWS = [
     {
         "game_id":   "0022500100",
-        "date":      (_today + _dt.timedelta(days=3)).isoformat(),
+        "date":      (_today + _dt.timedelta(days=1)).isoformat(),
         "time":      "7:30 pm ET",
         "home_id":   1610612738,  # BOS
         "home_abbr": "BOS",
@@ -73,7 +73,7 @@ FAKE_SCHEDULE_ROWS = [
     },
     {
         "game_id":   "0022500101",
-        "date":      (_today + _dt.timedelta(days=6)).isoformat(),
+        "date":      (_today + _dt.timedelta(days=1)).isoformat(),
         "time":      "9:00 pm ET",
         "home_id":   1610612744,  # GSW
         "home_abbr": "GSW",

@@ -1063,11 +1063,12 @@ def get_upcoming_games():
         return cached
 
     today    = _dt.date.today()
-    cutoff   = today + _dt.timedelta(days=7)
+    tomorrow = today + _dt.timedelta(days=1)
 
     try:
         time.sleep(0.6)
-        sched  = _lsched.LeagueSchedule(league_id='00', season_year='2024-25', game_type='2')
+        season_year = f"{today.year - 1}-{str(today.year)[2:]}" if today.month < 10 else f"{today.year}-{str(today.year + 1)[2:]}"
+        sched  = _lsched.LeagueSchedule(league_id='00', season_year=season_year, game_type='2')
         df_all = sched.get_data_frames()[0]
 
         candidates = []
@@ -1077,7 +1078,7 @@ def get_upcoming_games():
                 game_date = _dt.date.fromisoformat(raw_date[:10])
             except ValueError:
                 continue
-            if game_date <= today or game_date > cutoff:
+            if game_date != tomorrow:
                 continue
             candidates.append({
                 "game_id": str(g.get('GAME_ID', '')),

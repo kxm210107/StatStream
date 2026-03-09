@@ -35,31 +35,54 @@ def fetch_live_games() -> list[dict]:
         live = []
         now  = datetime.datetime.utcnow().isoformat() + "Z"
 
+        today_str = datetime.date.today().isoformat()
+
         for g in games:
             game_status = g.get("gameStatus", 1)  # 1=scheduled, 2=live, 3=final
-            if game_status != 2:                  # only live games
+            if game_status == 3:                  # skip final games
                 continue
 
             home = g.get("homeTeam", {})
             away = g.get("awayTeam", {})
 
-            live.append({
-                "game_id": g.get("gameId", ""),
-                "status":  "Live",
-                "period":  g.get("period", 0),
-                "clock":   _parse_clock(g.get("gameClock", "")),
-                "home_team": {
-                    "abbr":  home.get("teamTricode", ""),
-                    "name":  home.get("teamName", ""),
-                    "score": int(home.get("score", 0) or 0),
-                },
-                "away_team": {
-                    "abbr":  away.get("teamTricode", ""),
-                    "name":  away.get("teamName", ""),
-                    "score": int(away.get("score", 0) or 0),
-                },
-                "last_updated": now,
-            })
+            if game_status == 1:
+                live.append({
+                    "game_id": g.get("gameId", ""),
+                    "status":  "Upcoming",
+                    "date":    today_str,
+                    "time":    g.get("gameStatusText", ""),
+                    "period":  0,
+                    "clock":   "--",
+                    "home_team": {
+                        "abbr":  home.get("teamTricode", ""),
+                        "name":  home.get("teamName", ""),
+                        "score": 0,
+                    },
+                    "away_team": {
+                        "abbr":  away.get("teamTricode", ""),
+                        "name":  away.get("teamName", ""),
+                        "score": 0,
+                    },
+                    "last_updated": now,
+                })
+            else:
+                live.append({
+                    "game_id": g.get("gameId", ""),
+                    "status":  "Live",
+                    "period":  g.get("period", 0),
+                    "clock":   _parse_clock(g.get("gameClock", "")),
+                    "home_team": {
+                        "abbr":  home.get("teamTricode", ""),
+                        "name":  home.get("teamName", ""),
+                        "score": int(home.get("score", 0) or 0),
+                    },
+                    "away_team": {
+                        "abbr":  away.get("teamTricode", ""),
+                        "name":  away.get("teamName", ""),
+                        "score": int(away.get("score", 0) or 0),
+                    },
+                    "last_updated": now,
+                })
 
         return live
     except Exception:

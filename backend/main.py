@@ -1021,14 +1021,18 @@ def get_live_probabilities():
 
     result = []
     for g in games:
-        home_score = g["home_team"]["score"]
-        away_score = g["away_team"]["score"]
-        period     = g["period"]
-        clock      = g["clock"]
+        period = g["period"]
+        clock  = g["clock"]
+        is_upcoming = g["status"] == "Upcoming"
 
-        home_prob, away_prob = win_probability.predict(home_score, away_score, period, clock)
+        if is_upcoming:
+            home_prob, away_prob = None, None
+        else:
+            home_score = g["home_team"]["score"]
+            away_score = g["away_team"]["score"]
+            home_prob, away_prob = win_probability.predict(home_score, away_score, period, clock)
 
-        result.append({
+        entry = {
             "game_id": g["game_id"],
             "status":  g["status"],
             "period":  period,
@@ -1043,7 +1047,11 @@ def get_live_probabilities():
             },
             "last_updated": g["last_updated"],
             "model_type": "logistic",
-        })
+        }
+        if is_upcoming:
+            entry["date"] = g.get("date", "")
+            entry["time"] = g.get("time", "")
+        result.append(entry)
 
     live_cache.set("live_probabilities", result, ttl=20)
     return result

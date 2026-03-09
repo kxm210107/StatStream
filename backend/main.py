@@ -3,10 +3,11 @@
 cd /Users/kevjumba/PycharmProjects/StatStream/backend
 uvicorn main:app --reload --port 8000
 """
+import datetime
 import math
 import random
 import numpy as np
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
@@ -22,11 +23,18 @@ models.Base.metadata.create_all(bind=engine)
 from sqlalchemy import text as _text
 
 with engine.connect() as _conn:
-    _exists = _conn.execute(_text("""
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'player_stats' AND column_name = 'position'
-    """)).fetchone()
-    if _exists is None:
+    _dialect = engine.dialect.name
+    if _dialect == "sqlite":
+        # SQLite: check PRAGMA table_info instead of information_schema
+        _cols = _conn.execute(_text("PRAGMA table_info(player_stats)")).fetchall()
+        _col_names = [row[1] for row in _cols]
+        _exists = "position" in _col_names
+    else:
+        _exists = _conn.execute(_text("""
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'player_stats' AND column_name = 'position'
+        """)).fetchone() is not None
+    if not _exists:
         _conn.execute(_text("ALTER TABLE player_stats ADD COLUMN position VARCHAR"))
         _conn.commit()
 
@@ -35,8 +43,9 @@ app = FastAPI(title="StatStream API", version="2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET"],
+    allow_headers=["Content-Type"],
+    allow_credentials=False,
 )
 
 
@@ -96,6 +105,7 @@ def get_all_players(season: str = "2024-25", db: Session = Depends(get_db)):
 # ==========================================
 @app.get("/players/search")
 def search_players(q: str = "", db: Session = Depends(get_db)):
+    # /players/filter also kept here (before {player_id}) to avoid the same conflict
     if len(q) < 2:
         return []
     rows = (
@@ -115,6 +125,32 @@ def search_players(q: str = "", db: Session = Depends(get_db)):
                 "position":    row.position,
             })
     return results[:20]
+
+
+# ==========================================
+# ENDPOINT: Filter players
+# GET /players/filter?min_pts=20&season=2024-25
+# NOTE: Must be defined BEFORE /players/{player_id} to avoid route conflict.
+# ==========================================
+@app.get("/players/filter", response_model=List[schemas.PlayerStatSchema])
+def filter_players(
+    min_pts: float = 0,
+    min_reb: float = 0,
+    min_ast: float = 0,
+    season:  str   = "2024-25",
+    db: Session = Depends(get_db),
+):
+    return (
+        db.query(models.PlayerStat)
+        .filter(
+            models.PlayerStat.season       == season,
+            models.PlayerStat.pts_per_game >= min_pts,
+            models.PlayerStat.reb_per_game >= min_reb,
+            models.PlayerStat.ast_per_game >= min_ast,
+        )
+        .order_by(models.PlayerStat.pts_per_game.desc())
+        .all()
+    )
 
 
 # ==========================================
@@ -163,31 +199,6 @@ def get_players_by_team(team_abbr: str, season: str = "2024-25", db: Session = D
             models.PlayerStat.team   == team_abbr.upper(),
             models.PlayerStat.season == season,
         )
-        .all()
-    )
-
-
-# ==========================================
-# ENDPOINT: Filter players
-# GET /players/filter?min_pts=20&season=2024-25
-# ==========================================
-@app.get("/players/filter", response_model=List[schemas.PlayerStatSchema])
-def filter_players(
-    min_pts: float = 0,
-    min_reb: float = 0,
-    min_ast: float = 0,
-    season:  str   = "2024-25",
-    db: Session = Depends(get_db),
-):
-    return (
-        db.query(models.PlayerStat)
-        .filter(
-            models.PlayerStat.season       == season,
-            models.PlayerStat.pts_per_game >= min_pts,
-            models.PlayerStat.reb_per_game >= min_reb,
-            models.PlayerStat.ast_per_game >= min_ast,
-        )
-        .order_by(models.PlayerStat.pts_per_game.desc())
         .all()
     )
 
@@ -360,198 +371,9 @@ def compare_teams(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  TRAJECTORY HELPERS
-# ──────────────────────────────────────────────────────────────────────────────
-
-def _regress(x: np.ndarray, y: np.ndarray, x_pred: float):
-    """OLS regression with 95 % prediction interval at x_pred."""
-    n = len(x)
-    x_mean = float(np.mean(x))
-    y_mean = float(np.mean(y))
-    ss_xx  = float(np.sum((x - x_mean) ** 2))
-
-    if ss_xx == 0 or n < 2:
-        return y_mean, (max(0.0, y_mean - 2.0), y_mean + 2.0), 0.0
-
-    slope     = float(np.sum((x - x_mean) * (y - y_mean)) / ss_xx)
-    intercept = y_mean - slope * x_mean
-    residuals = y - (slope * x + intercept)
-    mse       = float(np.sum(residuals ** 2) / max(n - 2, 1))
-    se_pred   = float(np.sqrt(mse * (1 + 1 / n + (x_pred - x_mean) ** 2 / ss_xx)))
-    proj      = float(slope * x_pred + intercept)
-    half      = 1.96 * se_pred
-    return proj, (max(0.0, proj - half), proj + half), slope
-
-
-# ==========================================
-# ENDPOINT: Player career trajectory
-# GET /players/{player_id}/trajectory
-# ==========================================
-@app.get("/players/{player_id}/trajectory")
-def get_player_trajectory(player_id: int, db: Session = Depends(get_db)):
-    rows = (
-        db.query(models.PlayerStat)
-        .filter(models.PlayerStat.player_id == player_id)
-        .order_by(models.PlayerStat.season)
-        .all()
-    )
-    if not rows:
-        raise HTTPException(status_code=404, detail="Player not found")
-
-    seasons_data = [
-        {
-            "season": r.season,
-            "pts":    r.pts_per_game,
-            "reb":    r.reb_per_game,
-            "ast":    r.ast_per_game,
-            "team":   r.team,
-        }
-        for r in rows
-    ]
-
-    # Fit regression
-    x = np.array([float(s["season"].split("-")[0]) for s in seasons_data])
-    x -= x[0]  # start at 0
-    x_pred = float(x[-1] + 1)
-
-    pts_arr = np.array([s["pts"] for s in seasons_data])
-    reb_arr = np.array([s["reb"] for s in seasons_data])
-    ast_arr = np.array([s["ast"] for s in seasons_data])
-
-    proj_pts, ci_pts, slope_pts = _regress(x, pts_arr, x_pred)
-    proj_reb, ci_reb, slope_reb = _regress(x, reb_arr, x_pred)
-    proj_ast, ci_ast, slope_ast = _regress(x, ast_arr, x_pred)
-
-    last_year = int(rows[-1].season.split("-")[0])
-    proj_season = f"{last_year + 1}-{str(last_year + 2)[-2:]}"
-
-    return {
-        "player_id":   player_id,
-        "player_name": rows[0].player_name,
-        "position":    rows[0].position,
-        "seasons":     seasons_data,
-        "projection": {
-            "season": proj_season,
-            "pts":    round(proj_pts, 1),
-            "reb":    round(proj_reb, 1),
-            "ast":    round(proj_ast, 1),
-            "pts_ci": [round(ci_pts[0], 1), round(ci_pts[1], 1)],
-            "reb_ci": [round(ci_reb[0], 1), round(ci_reb[1], 1)],
-            "ast_ci": [round(ci_ast[0], 1), round(ci_ast[1], 1)],
-        },
-        "trend": {
-            "pts_slope": round(slope_pts, 3),
-            "reb_slope": round(slope_reb, 3),
-            "ast_slope": round(slope_ast, 3),
-        },
-    }
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  SEASON PREDICTIONS ENDPOINT
-# ──────────────────────────────────────────────────────────────────────────────
-
-@app.get("/predictions/season-preview")
-def season_preview(
-    target_season: str = "2025-26",
-    min_seasons:   int = 2,
-    limit:         int = 200,
-    db: Session = Depends(get_db),
-):
-    """
-    For each player with >= min_seasons of history BEFORE target_season,
-    run OLS regression to predict their target_season stats.
-    Returns actual stats alongside predictions when available.
-    """
-
-    # ── Gather all historical rows grouped by player ─────────────────────────
-    all_rows = (
-        db.query(models.PlayerStat)
-        .order_by(models.PlayerStat.player_id, models.PlayerStat.season)
-        .all()
-    )
-
-    by_player: dict[int, list] = defaultdict(list)
-    actuals:   dict[int, dict] = {}
-
-    for r in all_rows:
-        if r.season == target_season:
-            actuals[r.player_id] = {
-                "actual_pts": r.pts_per_game,
-                "actual_reb": r.reb_per_game,
-                "actual_ast": r.ast_per_game,
-                "team":       r.team,
-                "position":   r.position,
-            }
-        elif r.season < target_season:          # only prior seasons
-            by_player[r.player_id].append(r)
-
-    results = []
-
-    for player_id, rows in by_player.items():
-        if len(rows) < min_seasons:
-            continue
-
-        # Use the most recent row for display meta
-        latest = rows[-1]
-        x = np.array([float(r.season.split("-")[0]) for r in rows])
-        x -= x[0]
-        x_pred = float(x[-1] + 1)
-
-        pts_arr = np.array([r.pts_per_game for r in rows])
-        reb_arr = np.array([r.reb_per_game for r in rows])
-        ast_arr = np.array([r.ast_per_game for r in rows])
-
-        pred_pts, _, _ = _regress(x, pts_arr, x_pred)
-        pred_reb, _, _ = _regress(x, reb_arr, x_pred)
-        pred_ast, _, _ = _regress(x, ast_arr, x_pred)
-
-        # Clamp to non-negative
-        pred_pts = max(0.0, round(pred_pts, 1))
-        pred_reb = max(0.0, round(pred_reb, 1))
-        pred_ast = max(0.0, round(pred_ast, 1))
-
-        actual = actuals.get(player_id, {})
-        team     = actual.get("team",     latest.team)
-        position = actual.get("position", latest.position)
-
-        entry: dict = {
-            "player_id":    player_id,
-            "player_name":  latest.player_name,
-            "position":     position,
-            "team":         team,
-            "seasons_used": len(rows),
-            "pred_pts":     pred_pts,
-            "pred_reb":     pred_reb,
-            "pred_ast":     pred_ast,
-        }
-
-        if actual:
-            a_pts = actual["actual_pts"]
-            a_reb = actual["actual_reb"]
-            a_ast = actual["actual_ast"]
-            entry.update({
-                "actual_pts": round(a_pts, 1),
-                "actual_reb": round(a_reb, 1),
-                "actual_ast": round(a_ast, 1),
-                "diff_pts":   round(a_pts - pred_pts, 1),
-                "diff_reb":   round(a_reb - pred_reb, 1),
-                "diff_ast":   round(a_ast - pred_ast, 1),
-            })
-
-        results.append(entry)
-
-    # Sort by predicted points desc
-    results.sort(key=lambda r: r["pred_pts"], reverse=True)
-    return results[:limit]
-
-
-# ──────────────────────────────────────────────────────────────────────────────
 #  PLAYOFF SIMULATOR HELPERS
 # ──────────────────────────────────────────────────────────────────────────────
-import json
 import time
-from collections import defaultdict
 
 EAST_CONF = {
     'ATL','BOS','BKN','CHA','CHI','CLE','DET','IND','MIA','MIL','NYK','ORL','PHI','TOR','WAS'
@@ -569,12 +391,17 @@ _TEAM_ID_TO_ABBR: dict[int, str] = {
     1610612762: 'UTA', 1610612764: 'WAS',
 }
 
+# Reverse lookup: abbreviation → TeamID
+_ABBR_TO_TEAM_ID: dict[str, int] = {v: k for k, v in _TEAM_ID_TO_ABBR.items()}
+
 # NBA home-court advantage per game (historical ~3 pp)
 _HCA = 0.03
 
 # Simple 1-hour in-memory cache for live data
 _standings_cache: dict   = {}
 _team_stats_cache: dict  = {}
+_dashboard_cache: dict   = {}
+_schedule_cache: dict    = {}
 _CACHE_TTL = 3600
 
 
@@ -714,83 +541,6 @@ def _simulate_series_hca(p_neutral: float, a_is_higher_seed: bool) -> bool:
     return wins_a == 4
 
 
-def _simulate_play_in(teams_7_to_10: list, n_sims: int) -> list:
-    """
-    Simulate the NBA play-in tournament for seeds 7-10.
-    Game A: 7 vs 8  — winner = 7th seed in bracket
-    Game B: 9 vs 10 — loser eliminated
-    Game C: loser(A) vs winner(B) — winner = 8th seed in bracket
-    Returns list of 4 dicts with made_7th/made_8th/eliminated percentages.
-    """
-    t = teams_7_to_10  # [seed7, seed8, seed9, seed10]
-    counts = [{'made_7th': 0, 'made_8th': 0, 'eliminated': 0} for _ in range(4)]
-
-    def game(a, b):
-        p = _bt_prob(t[a]['win_pct'], t[b]['win_pct'])
-        return a if random.random() < p else b
-
-    for _ in range(n_sims):
-        w_a  = game(0, 1)           # Game A: 7 vs 8
-        l_a  = 1 - w_a              # index of loser
-        w_b  = game(2, 3)           # Game B: 9 vs 10 (loser(B) = 3 - w_b)
-        w_c  = game(l_a, w_b)       # Game C: loser(A) vs winner(B)
-
-        counts[w_a]['made_7th']  += 1
-        counts[w_c]['made_8th']  += 1
-        l_b  = 5 - w_b              # loser of Game B: indices are 2,3 → 5-winner
-        counts[l_b]['eliminated'] += 1
-        # loser of Game C also eliminated
-        l_c  = l_a if w_c == w_b else w_b
-        counts[l_c]['eliminated'] += 1
-
-    result = []
-    for i, team in enumerate(t):
-        result.append({
-            'team':       team['team'],
-            'seed':       7 + i,
-            'record':     team.get('record', ''),
-            'win_pct':    team['win_pct'],
-            'made_7th':   round(counts[i]['made_7th']   / n_sims * 100, 1),
-            'made_8th':   round(counts[i]['made_8th']   / n_sims * 100, 1),
-            'eliminated': round(counts[i]['eliminated'] / n_sims * 100, 1),
-        })
-    return result
-
-
-def _simulate_bracket_full(seeded_8: list, n_sims: int):
-    """
-    Simulate conference bracket with HCA and Bradley-Terry win probability.
-    seeded_8: list of 8 team dicts (index 0 = seed 1), each has 'win_pct'.
-    Returns (counts_dict, finalists_list).
-    """
-    counts    = {i: {'r1': 0, 'r2': 0, 'conf': 0} for i in range(8)}
-    finalists = []
-
-    def play(a, b):
-        # Lower index = higher seed = home court advantage
-        p = _bt_prob(seeded_8[a]['win_pct'], seeded_8[b]['win_pct'])
-        winner = a if _simulate_series_hca(p, a < b) else b
-        return winner
-
-    for _ in range(n_sims):
-        # R1: 1v8, 2v7, 3v6, 4v5
-        w1 = [play(0, 7), play(1, 6), play(2, 5), play(3, 4)]
-        for w in w1:
-            counts[w]['r1'] += 1
-
-        # R2: winner(1v8) vs winner(4v5),  winner(2v7) vs winner(3v6)
-        w2 = [play(w1[0], w1[3]), play(w1[1], w1[2])]
-        for w in w2:
-            counts[w]['r2'] += 1
-
-        # Conf finals
-        conf_w = play(w2[0], w2[1])
-        counts[conf_w]['conf'] += 1
-        finalists.append(conf_w)
-
-    return counts, finalists
-
-
 def _db_team_info(db: Session, season: str) -> dict:
     """Build team info dict from local DB (fallback when live data unavailable)."""
     rows = (
@@ -825,8 +575,11 @@ def _db_team_info(db: Session, season: str) -> dict:
 # GET /playoff/simulate?season=2024-25&n_sims=5000
 # ==========================================
 @app.get("/playoff/simulate")
-def simulate_playoffs(season: str = "2024-25", n_sims: int = 5000, db: Session = Depends(get_db)):
-    import datetime
+def simulate_playoffs(
+    season: str = "2024-25",
+    n_sims: int = Query(default=5000, ge=100, le=25000),
+    db: Session = Depends(get_db),
+):
 
     # ── 1. Fetch live data (standings + per-game team stats) ─────────────────
     live_standings  = _fetch_live_standings(season)
@@ -1019,3 +772,206 @@ def simulate_playoffs(season: str = "2024-25", n_sims: int = 5000, db: Session =
         'prob_method':  prob_method,
         'fetched_at':   datetime.datetime.utcnow().isoformat() + 'Z',
     }
+
+
+# ==========================================
+# ENDPOINT: Team Dashboard
+# GET /teams/{team_abbr}/dashboard?season=2024-25
+# ==========================================
+@app.get("/teams/{team_abbr}/dashboard")
+def team_dashboard(team_abbr: str, season: str = "2024-25"):
+    import concurrent.futures
+    team_abbr = team_abbr.upper()
+    team_id   = _ABBR_TO_TEAM_ID.get(team_abbr)
+
+    cache_key = (team_abbr, season)
+    cached = _dashboard_cache.get(cache_key)
+    if cached and time.time() - cached['ts'] < _CACHE_TTL:
+        return cached['data']
+
+    def fetch_team_stats():
+        try:
+            from nba_api.stats.endpoints import leaguedashteamstats as _ldt2
+            time.sleep(0.6)
+            raw = _ldt2.LeagueDashTeamStats(season=season, per_mode_detailed='PerGame')
+            df  = raw.get_data_frames()[0]
+            row = df[df['TEAM_ID'] == team_id]
+            if not row.empty:
+                r   = row.iloc[0]
+                w   = int(r.get('W',          0) or 0)
+                l   = int(r.get('L',          0) or 0)
+                ppg = round(float(r.get('PTS',        0) or 0), 1)
+                pm  = round(float(r.get('PLUS_MINUS', 0) or 0), 1)
+                ast = round(float(r.get('AST',        0) or 0), 1)
+                tov = round(float(r.get('TOV',        0) or 0), 1)
+                return {
+                    "wins":         w,
+                    "losses":       l,
+                    "record":       f"{w}-{l}",
+                    "ppg":          ppg,
+                    "opp_ppg":      round(ppg - pm, 1),
+                    "ast_per_game": ast,
+                    "tov_per_game": tov,
+                    "ast_to_ratio": round(ast / tov, 2) if tov > 0 else 0.0,
+                    "reb_per_game": round(float(r.get('REB', 0) or 0), 1),
+                    "plus_minus":   pm,
+                }
+        except Exception as e:
+            print(f"[StatStream] Team dashboard stats failed: {e}")
+        return None
+
+    def fetch_game_log():
+        if not team_id:
+            return []
+        try:
+            import pandas as _pd
+            from nba_api.stats.endpoints import leaguegamefinder as _lgf
+            time.sleep(0.6)
+            finder = _lgf.LeagueGameFinder(
+                team_id_nullable=team_id,
+                season_nullable=season,
+                season_type_nullable='Regular Season',
+            )
+            df_log = finder.get_data_frames()[0]
+            df_log['PTS']        = _pd.to_numeric(df_log['PTS'],        errors='coerce').fillna(0).astype(int)
+            df_log['PLUS_MINUS'] = _pd.to_numeric(df_log['PLUS_MINUS'], errors='coerce').fillna(0).astype(int)
+            games = []
+            for _, g in df_log.head(15).iterrows():
+                matchup = str(g.get('MATCHUP', ''))
+                pts     = int(g['PTS'])
+                pm_g    = int(g['PLUS_MINUS'])
+                games.append({
+                    "date":       str(g.get('GAME_DATE', '')),
+                    "matchup":    matchup,
+                    "opponent":   matchup.split(' ')[-1],
+                    "home":       'vs.' in matchup,
+                    "wl":         str(g.get('WL', '')),
+                    "pts":        pts,
+                    "opp_pts":    pts - pm_g,
+                    "plus_minus": pm_g,
+                })
+            return games
+        except Exception as e:
+            print(f"[StatStream] Game log fetch failed: {e}")
+        return []
+
+    # Run both fetches concurrently instead of sequentially
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        fut_stats    = executor.submit(fetch_team_stats)
+        fut_game_log = executor.submit(fetch_game_log)
+        stats    = fut_stats.result()
+        game_log = fut_game_log.result()
+
+    result = {
+        "team":     team_abbr,
+        "season":   season,
+        "stats":    stats,
+        "game_log": game_log,
+        "upcoming": [],
+    }
+
+    _dashboard_cache[cache_key] = {'data': result, 'ts': time.time()}
+    return result
+
+
+# ==========================================
+# ENDPOINT: Team Upcoming Schedule
+# GET /teams/{team_abbr}/schedule
+# Separate from dashboard so the dashboard loads fast; frontend fetches async.
+# ==========================================
+@app.get("/teams/{team_abbr}/schedule")
+def team_schedule(team_abbr: str, season: str = "2024-25"):
+    import datetime as _dt
+    team_abbr = team_abbr.upper()
+    team_id   = _ABBR_TO_TEAM_ID.get(team_abbr)
+    if not team_id:
+        return []
+
+    # Cache by team + calendar date (schedule doesn't change intraday)
+    cache_key = (team_abbr, str(_dt.date.today()))
+    cached = _schedule_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    today = _dt.date.today()
+
+    def _safe_int(val):
+        try:
+            f = float(val)
+            return 0 if f != f else int(round(f))
+        except (TypeError, ValueError):
+            return 0
+
+    # ── Try LeagueSchedule: single API call for the whole season ────────────
+    try:
+        from nba_api.stats.endpoints import leagueschedule as _lsched
+        time.sleep(0.6)
+        sched  = _lsched.LeagueSchedule(league_id='00', season_year=season, game_type='2')
+        df_all = sched.get_data_frames()[0]
+
+        # Build list of future games for this team, then sort by date
+        candidates = []
+        for _, g in df_all.iterrows():
+            h_id = _safe_int(g.get('HOME_TEAM_ID', 0))
+            v_id = _safe_int(g.get('VISITOR_TEAM_ID', 0))
+            if h_id != team_id and v_id != team_id:
+                continue
+            # LeagueSchedule uses GAME_DATE_EST (e.g. "2025-01-15T00:00:00")
+            raw_date = str(g.get('GAME_DATE_EST', '') or g.get('GAME_DATE', ''))
+            try:
+                game_date = _dt.date.fromisoformat(raw_date[:10])
+            except ValueError:
+                continue
+            if game_date <= today:
+                continue
+            is_home  = (h_id == team_id)
+            opp_id   = v_id if is_home else h_id
+            opp_abbr = _TEAM_ID_TO_ABBR.get(opp_id, '')
+            candidates.append({
+                "date":     game_date.isoformat(),
+                "time":     str(g.get('GAME_STATUS_TEXT', '')),
+                "opponent": opp_abbr,
+                "home":     is_home,
+            })
+        upcoming = sorted(candidates, key=lambda x: x['date'])[:5]
+
+        _schedule_cache[cache_key] = upcoming
+        return upcoming
+
+    except Exception as e:
+        print(f"[StatStream] LeagueSchedule fetch failed, falling back to ScoreboardV2: {e}")
+
+    # ── Fallback: ScoreboardV2 day-by-day (result still cached) ─────────────
+    try:
+        from nba_api.stats.endpoints import scoreboardv2 as _sbv2
+        upcoming   = []
+        check_date = today
+        days_ahead = 0
+        while len(upcoming) < 5 and days_ahead < 14:
+            days_ahead += 1
+            check_date += _dt.timedelta(days=1)
+            try:
+                time.sleep(0.4)
+                sb     = _sbv2.ScoreboardV2(game_date=check_date.strftime('%m/%d/%Y'), league_id='00')
+                df_hdr = sb.get_data_frames()[0]
+                for _, g in df_hdr.iterrows():
+                    h_id = _safe_int(g.get('HOME_TEAM_ID',    0))
+                    v_id = _safe_int(g.get('VISITOR_TEAM_ID', 0))
+                    if h_id == team_id or v_id == team_id:
+                        is_home  = (h_id == team_id)
+                        opp_id   = v_id if is_home else h_id
+                        opp_abbr = _TEAM_ID_TO_ABBR.get(opp_id, '')
+                        upcoming.append({
+                            "date":     check_date.isoformat(),
+                            "time":     str(g.get('GAME_STATUS_TEXT', '')),
+                            "opponent": opp_abbr,
+                            "home":     is_home,
+                        })
+                        break
+            except Exception:
+                pass
+        _schedule_cache[cache_key] = upcoming
+        return upcoming
+    except Exception as e:
+        print(f"[StatStream] Schedule fetch failed: {e}")
+        return []

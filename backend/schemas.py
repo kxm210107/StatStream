@@ -54,3 +54,17 @@ class LiveGame(BaseModel):
 
 class LiveGameWithProbability(LiveGame):
     model_type: str = "logistic"
+
+# ── Upcoming game schemas ──────────────────────────────────────────────────────
+
+class UpcomingTeam(BaseModel):
+    abbr: str
+    name: str
+
+class UpcomingGame(BaseModel):
+    game_id:   str
+    status:    str   # "Upcoming"
+    date:      str   # ISO date: "2026-03-10"
+    time:      str   # e.g. "7:30 pm ET"
+    home_team: UpcomingTeam
+    away_team: UpcomingTeam

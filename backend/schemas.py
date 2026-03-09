@@ -68,3 +68,21 @@ class UpcomingGame(BaseModel):
     time:      str   # e.g. "7:30 pm ET"
     home_team: UpcomingTeam
     away_team: UpcomingTeam
+
+# ── Lineup Impact schemas ──────────────────────────────────────────────────────
+
+class LineupSummary(BaseModel):
+    lineup_id:      str
+    players:        list[str]
+    minutes:        float
+    points_for:     int
+    points_against: int
+    plus_minus:     int
+    off_rating:     float
+    def_rating:     float
+    net_rating:     float
+
+class LineupResponse(BaseModel):
+    team:    str
+    season:  str
+    lineups: list[LineupSummary]

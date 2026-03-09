@@ -88,3 +88,10 @@ export async function getUpcomingGames() {
   if (!res.ok) throw new Error('Failed to fetch upcoming games');
   return res.json();
 }
+
+export async function getTeamLineups(teamAbbr, { season = '2025-26', minMinutes = 20, limit = 20, sortBy = 'net_rating' } = {}) {
+  const params = new URLSearchParams({ season, min_minutes: minMinutes, limit, sort_by: sortBy });
+  const res = await fetch(`${BASE_URL}/teams/${teamAbbr}/lineups?${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch lineups for ${teamAbbr}`);
+  return res.json();
+}

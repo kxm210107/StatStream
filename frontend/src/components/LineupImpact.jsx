@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getTeamLineups } from '../api';
+import { useState, useEffect } from 'react';
 import LineupTable from './LineupTable';
 
 const TEAMS = [
@@ -16,16 +15,29 @@ export default function LineupImpact({ season = '2025-26' }) {
   const [loading,    setLoading   ] = useState(false);
   const [error,      setError     ] = useState(null);
 
-  const loadLineups = useCallback(() => {
+  useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    getTeamLineups(team, { season, minMinutes, sortBy })
-      .then(data => setLineups(data.lineups))
-      .catch(err  => setError(err.message))
-      .finally(()  => setLoading(false));
-  }, [team, season, minMinutes, sortBy]);
 
-  useEffect(() => { loadLineups(); }, [loadLineups]);
+    fetch(`http://localhost:8000/teams/${team}/lineups?` + new URLSearchParams({
+      season,
+      min_minutes: minMinutes,
+      sort_by: sortBy,
+      limit: 20,
+    }), { signal: controller.signal })
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch lineups for ${team}`);
+        return res.json();
+      })
+      .then(data => setLineups(data.lineups))
+      .catch(err => {
+        if (err.name !== 'AbortError') setError(err.message);
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, [team, season, minMinutes, sortBy]);
 
   function handleSort(field) {
     setSortBy(field);

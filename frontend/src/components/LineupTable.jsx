@@ -1,4 +1,3 @@
-import { useState } from 'react';
 
 const COLUMNS = [
   { key: 'players',        label: 'Lineup',     sortable: false, width: '35%' },

@@ -1,16 +1,109 @@
 // frontend/src/components/LiveGameCard.jsx
+import { useState, useEffect } from 'react';
 import WinProbabilityBar from './WinProbabilityBar';
 
 const PERIOD_LABEL = { 1: '1ST', 2: '2ND', 3: '3RD', 4: '4TH' };
 
-function formatUpcomingDate(dateStr) {
-  const d = new Date(dateStr + 'T12:00:00'); // noon avoids timezone shifts
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+function to24h(timeStr) {
+  const parts = timeStr.trim().split(' ');
+  const [h24, m24] = parts[0].split(':').map(Number);
+  const meridiem = (parts[1] || '').toLowerCase();
+  let h = h24;
+  if (meridiem === 'pm' && h !== 12) h += 12;
+  if (meridiem === 'am' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${String(m24).padStart(2, '0')}:00`;
+}
+
+function parseTipoffMs(dateStr, timeStr) {
+  try {
+    const cleaned = timeStr.replace(/\s*ET$/i, '').trim();
+    const tipoff = new Date(`${dateStr}T${to24h(cleaned)}`);
+    return tipoff.getTime() - Date.now();
+  } catch {
+    return null;
+  }
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return 'STARTING';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatTipoffTime(timeStr) {
+  return timeStr.toUpperCase();
+}
+
+function CountdownCell({ dateStr, timeStr }) {
+  const [msLeft, setMsLeft] = useState(() => parseTipoffMs(dateStr, timeStr));
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMsLeft(parseTipoffMs(dateStr, timeStr));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [dateStr, timeStr]);
+
+  return (
+    <div style={{ textAlign: 'center', minWidth: 120 }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 22, letterSpacing: '0.08em',
+        color: 'var(--cyan)', fontWeight: 700, lineHeight: 1,
+      }}>
+        {msLeft != null ? formatCountdown(msLeft) : '--:--:--'}
+      </div>
+      <div style={{
+        fontSize: 9, letterSpacing: '0.12em', color: 'var(--text-muted)',
+        textTransform: 'uppercase', marginTop: 4,
+      }}>
+        to tipoff
+      </div>
+    </div>
+  );
+}
+
+function ScoreCell({ home, away }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 120, justifyContent: 'center' }}>
+      <span style={{
+        fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
+        color: away.score > home.score ? 'var(--text-primary)' : 'var(--text-secondary)',
+      }}>
+        {away.score}
+      </span>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>VS</span>
+      <span style={{
+        fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
+        color: home.score > away.score ? 'var(--text-primary)' : 'var(--text-secondary)',
+      }}>
+        {home.score}
+      </span>
+    </div>
+  );
+}
+
+function TipoffCell({ timeStr }) {
+  return (
+    <div style={{ textAlign: 'center', minWidth: 120 }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.08em',
+        color: 'var(--text-secondary)', fontWeight: 600,
+      }}>
+        {formatTipoffTime(timeStr)}
+      </div>
+    </div>
+  );
 }
 
 export default function LiveGameCard({ game, selected, onClick }) {
   const { home_team: home, away_team: away } = game;
-  const isUpcoming = game.status === 'Upcoming';
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isLive     = game.status !== 'Upcoming';
+  const isToday    = game.date === todayStr;
+  const isTomorrow = !isLive && !isToday;
 
   return (
     <div
@@ -18,93 +111,99 @@ export default function LiveGameCard({ game, selected, onClick }) {
       style={{
         background: selected ? 'var(--bg-card-2)' : 'var(--bg-card)',
         border: `1px solid ${selected ? 'var(--cyan)' : 'var(--border-light)'}`,
-        borderRadius: 14,
-        padding: '18px 22px',
-        cursor: 'pointer',
+        borderRadius: 12,
+        padding: '14px 20px',
+        cursor: isLive ? 'pointer' : 'default',
         transition: 'border-color 0.2s, background 0.2s',
         boxShadow: selected ? '0 0 0 1px rgba(34,211,238,0.15) inset' : 'none',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Status + time header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 14,
-      }}>
-        {isUpcoming ? (
-          <span style={{
-            fontSize: 10, fontWeight: 800, letterSpacing: '0.15em',
-            color: 'var(--text-muted)', textTransform: 'uppercase',
-          }}>
-            Upcoming
-          </span>
-        ) : (
-          <span style={{
-            fontSize: 10, fontWeight: 800, letterSpacing: '0.15em',
-            color: '#4ADE80', textTransform: 'uppercase',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
+      {/* Main row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+
+        {/* Status badge */}
+        <div style={{ minWidth: 64, flexShrink: 0 }}>
+          {isLive ? (
             <span style={{
-              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-              background: '#4ADE80', boxShadow: '0 0 5px #4ADE80',
-              animation: 'pulse 2s ease infinite',
-            }} />
-            Live
-          </span>
-        )}
+              fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+              color: '#4ADE80', textTransform: 'uppercase',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              <span style={{
+                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                background: '#4ADE80', boxShadow: '0 0 5px #4ADE80',
+                animation: 'pulse 2s ease infinite', flexShrink: 0,
+              }} />
+              {PERIOD_LABEL[game.period] ?? `OT${game.period - 4}`}
+              <br />
+              <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>{game.clock}</span>
+            </span>
+          ) : isToday ? (
+            <span style={{
+              fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+              color: 'var(--text-muted)', textTransform: 'uppercase',
+            }}>Today</span>
+          ) : (
+            <span style={{
+              fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+              color: 'var(--text-muted)', textTransform: 'uppercase',
+            }}>Tomorrow</span>
+          )}
+        </div>
 
-        <span style={{
-          fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-mono)',
-        }}>
-          {isUpcoming
-            ? `${formatUpcomingDate(game.date)} · ${game.time}`
-            : `${PERIOD_LABEL[game.period] ?? `OT${game.period - 4}`} · ${game.clock}`
-          }
-        </span>
-      </div>
-
-      {/* Scoreboard */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isUpcoming ? 0 : 16 }}>
         {/* Away team */}
-        <div style={{ textAlign: 'left', minWidth: 80 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+        <div style={{ flex: 1, textAlign: 'right' }}>
+          <div style={{
+            fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', marginBottom: 2,
+          }}>
             {away.abbr}
           </div>
           <div style={{
-            fontFamily: 'var(--font-display)', fontSize: isUpcoming ? 18 : 36, lineHeight: 1,
-            color: isUpcoming ? 'var(--text-secondary)' : (away.score > home.score ? 'var(--text-primary)' : 'var(--text-secondary)'),
+            fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.05em',
+            fontWeight: 500,
           }}>
-            {isUpcoming ? away.name : away.score}
+            {away.name}
           </div>
         </div>
 
-        {/* Divider */}
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          {isUpcoming ? '@' : 'VS'}
+        {/* Center: score / countdown / time */}
+        <div style={{ flexShrink: 0 }}>
+          {isLive    && <ScoreCell home={home} away={away} />}
+          {isToday   && !isLive && <CountdownCell dateStr={game.date} timeStr={game.time} />}
+          {isTomorrow && <TipoffCell timeStr={game.time} />}
         </div>
 
         {/* Home team */}
-        <div style={{ textAlign: 'right', minWidth: 80 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <div style={{
+            fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', marginBottom: 2,
+          }}>
             {home.abbr}
           </div>
           <div style={{
-            fontFamily: 'var(--font-display)', fontSize: isUpcoming ? 18 : 36, lineHeight: 1,
-            color: isUpcoming ? 'var(--text-secondary)' : (home.score > away.score ? 'var(--text-primary)' : 'var(--text-secondary)'),
+            fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.05em',
+            fontWeight: 500,
           }}>
-            {isUpcoming ? home.name : home.score}
+            {home.name}
           </div>
         </div>
+
       </div>
 
       {/* Win probability bar — live games only */}
-      {!isUpcoming && home.win_probability != null && (
-        <WinProbabilityBar
-          homeProb={home.win_probability}
-          awayProb={away.win_probability}
-          homeAbbr={home.abbr}
-          awayAbbr={away.abbr}
-        />
+      {isLive && home.win_probability != null && (
+        <div style={{ marginTop: 14 }}>
+          <WinProbabilityBar
+            homeProb={home.win_probability}
+            awayProb={away.win_probability}
+            homeAbbr={home.abbr}
+            awayAbbr={away.abbr}
+          />
+        </div>
       )}
     </div>
   );

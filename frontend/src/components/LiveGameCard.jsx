@@ -1,6 +1,7 @@
 // frontend/src/components/LiveGameCard.jsx
 import { useState, useEffect } from 'react';
 import WinProbabilityBar from './WinProbabilityBar';
+import { getTeamLogoUrl } from '../utils/teamLogos';
 
 const PERIOD_LABEL = { 1: '1ST', 2: '2ND', 3: '3RD', 4: '4TH' };
 
@@ -62,7 +63,7 @@ function CountdownCell({ dateStr, timeStr }) {
     <div style={{ textAlign: 'center', minWidth: 160 }}>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: 32, letterSpacing: '0.08em',
-        color: 'var(--cyan)', fontWeight: 700, lineHeight: 1,
+        color: 'var(--text-primary)', fontWeight: 700, lineHeight: 1,
       }}>
         {msLeft != null ? formatCountdown(msLeft) : '--:--:--'}
       </div>
@@ -166,19 +167,25 @@ export default function LiveGameCard({ game, selected, onClick }) {
         </div>
 
         {/* Away team */}
-        <div style={{ flex: 1, textAlign: 'right' }}>
-          <div style={{
-            fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.12em',
-            textTransform: 'uppercase', marginBottom: 4,
-          }}>
-            {away.abbr}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14 }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{
+              fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.12em',
+              textTransform: 'uppercase', marginBottom: 4,
+            }}>
+              {away.abbr}
+            </div>
+            <div style={{
+              fontSize: 18, color: 'var(--text-secondary)', letterSpacing: '0.03em',
+              fontWeight: 500,
+            }}>
+              {away.name}
+            </div>
           </div>
-          <div style={{
-            fontSize: 18, color: 'var(--text-secondary)', letterSpacing: '0.03em',
-            fontWeight: 500,
-          }}>
-            {away.name}
-          </div>
+          {getTeamLogoUrl(away.abbr) && (
+            <img src={getTeamLogoUrl(away.abbr)} alt={away.abbr} width={48} height={48}
+              style={{ objectFit: 'contain', flexShrink: 0 }} />
+          )}
         </div>
 
         {/* Center: score / countdown / time */}
@@ -189,18 +196,24 @@ export default function LiveGameCard({ game, selected, onClick }) {
         </div>
 
         {/* Home team */}
-        <div style={{ flex: 1, textAlign: 'left' }}>
-          <div style={{
-            fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.12em',
-            textTransform: 'uppercase', marginBottom: 4,
-          }}>
-            {home.abbr}
-          </div>
-          <div style={{
-            fontSize: 18, color: 'var(--text-secondary)', letterSpacing: '0.03em',
-            fontWeight: 500,
-          }}>
-            {home.name}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 14 }}>
+          {getTeamLogoUrl(home.abbr) && (
+            <img src={getTeamLogoUrl(home.abbr)} alt={home.abbr} width={48} height={48}
+              style={{ objectFit: 'contain', flexShrink: 0 }} />
+          )}
+          <div style={{ textAlign: 'left' }}>
+            <div style={{
+              fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.12em',
+              textTransform: 'uppercase', marginBottom: 4,
+            }}>
+              {home.abbr}
+            </div>
+            <div style={{
+              fontSize: 18, color: 'var(--text-secondary)', letterSpacing: '0.03em',
+              fontWeight: 500,
+            }}>
+              {home.name}
+            </div>
           </div>
         </div>
 

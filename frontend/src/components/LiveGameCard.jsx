@@ -59,16 +59,16 @@ function CountdownCell({ dateStr, timeStr }) {
   }, [dateStr, timeStr]);
 
   return (
-    <div style={{ textAlign: 'center', minWidth: 120 }}>
+    <div style={{ textAlign: 'center', minWidth: 160 }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 22, letterSpacing: '0.08em',
+        fontFamily: 'var(--font-mono)', fontSize: 32, letterSpacing: '0.08em',
         color: 'var(--cyan)', fontWeight: 700, lineHeight: 1,
       }}>
         {msLeft != null ? formatCountdown(msLeft) : '--:--:--'}
       </div>
       <div style={{
-        fontSize: 9, letterSpacing: '0.12em', color: 'var(--text-muted)',
-        textTransform: 'uppercase', marginTop: 4,
+        fontSize: 11, letterSpacing: '0.12em', color: 'var(--text-muted)',
+        textTransform: 'uppercase', marginTop: 6,
       }}>
         to tipoff
       </div>
@@ -78,16 +78,16 @@ function CountdownCell({ dateStr, timeStr }) {
 
 function ScoreCell({ home, away }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 120, justifyContent: 'center' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 160, justifyContent: 'center' }}>
       <span style={{
-        fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
+        fontFamily: 'var(--font-display)', fontSize: 42, lineHeight: 1,
         color: away.score >= home.score ? 'var(--text-primary)' : 'var(--text-secondary)',
       }}>
         {away.score}
       </span>
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>VS</span>
+      <span style={{ fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>VS</span>
       <span style={{
-        fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1,
+        fontFamily: 'var(--font-display)', fontSize: 42, lineHeight: 1,
         color: home.score >= away.score ? 'var(--text-primary)' : 'var(--text-secondary)',
       }}>
         {home.score}
@@ -98,9 +98,9 @@ function ScoreCell({ home, away }) {
 
 function TipoffCell({ timeStr }) {
   return (
-    <div style={{ textAlign: 'center', minWidth: 120 }}>
+    <div style={{ textAlign: 'center', minWidth: 160 }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 13, letterSpacing: '0.08em',
+        fontFamily: 'var(--font-mono)', fontSize: 20, letterSpacing: '0.08em',
         color: 'var(--text-secondary)', fontWeight: 600,
       }}>
         {formatTipoffTime(timeStr)}
@@ -124,7 +124,7 @@ export default function LiveGameCard({ game, selected, onClick }) {
         background: selected ? 'var(--bg-card-2)' : 'var(--bg-card)',
         border: `1px solid ${selected ? 'var(--cyan)' : 'var(--border-light)'}`,
         borderRadius: 12,
-        padding: '14px 20px',
+        padding: '22px 28px',
         cursor: isLive ? 'pointer' : 'default',
         transition: 'border-color 0.2s, background 0.2s',
         boxShadow: selected ? '0 0 0 1px rgba(34,211,238,0.15) inset' : 'none',
@@ -136,30 +136,30 @@ export default function LiveGameCard({ game, selected, onClick }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
 
         {/* Status badge */}
-        <div style={{ minWidth: 64, flexShrink: 0 }}>
+        <div style={{ minWidth: 72, flexShrink: 0 }}>
           {isLive ? (
             <span style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.15em',
               color: '#4ADE80', textTransform: 'uppercase',
-              display: 'flex', alignItems: 'center', gap: 4,
+              display: 'flex', alignItems: 'center', gap: 5,
             }}>
               <span style={{
-                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
                 background: '#4ADE80', boxShadow: '0 0 5px #4ADE80',
                 animation: 'pulse 2s ease infinite', flexShrink: 0,
               }} />
               {PERIOD_LABEL[game.period] ?? `OT${game.period - 4}`}
               <br />
-              <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>{game.clock}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{game.clock}</span>
             </span>
           ) : isToday ? (
             <span style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.15em',
               color: 'var(--text-muted)', textTransform: 'uppercase',
             }}>Today</span>
           ) : (
             <span style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.15em',
               color: 'var(--text-muted)', textTransform: 'uppercase',
             }}>Tomorrow</span>
           )}
@@ -168,13 +168,13 @@ export default function LiveGameCard({ game, selected, onClick }) {
         {/* Away team */}
         <div style={{ flex: 1, textAlign: 'right' }}>
           <div style={{
-            fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.12em',
-            textTransform: 'uppercase', marginBottom: 2,
+            fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', marginBottom: 4,
           }}>
             {away.abbr}
           </div>
           <div style={{
-            fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.05em',
+            fontSize: 18, color: 'var(--text-secondary)', letterSpacing: '0.03em',
             fontWeight: 500,
           }}>
             {away.name}
@@ -191,13 +191,13 @@ export default function LiveGameCard({ game, selected, onClick }) {
         {/* Home team */}
         <div style={{ flex: 1, textAlign: 'left' }}>
           <div style={{
-            fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.12em',
-            textTransform: 'uppercase', marginBottom: 2,
+            fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', marginBottom: 4,
           }}>
             {home.abbr}
           </div>
           <div style={{
-            fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.05em',
+            fontSize: 18, color: 'var(--text-secondary)', letterSpacing: '0.03em',
             fontWeight: 500,
           }}>
             {home.name}

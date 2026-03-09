@@ -1047,3 +1047,58 @@ def get_live_probabilities():
 
     live_cache.set("live_probabilities", result, ttl=20)
     return result
+
+
+# ==========================================
+# ENDPOINT: League-wide upcoming games
+# GET /games/upcoming
+# ==========================================
+@app.get("/games/upcoming")
+def get_upcoming_games():
+    import datetime as _dt
+
+    cache_key = f"upcoming_games_{_dt.date.today().isoformat()}"
+    cached = live_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    today    = _dt.date.today()
+    cutoff   = today + _dt.timedelta(days=7)
+
+    try:
+        from nba_api.stats.endpoints import leagueschedule as _lsched
+        time.sleep(0.6)
+        sched  = _lsched.LeagueSchedule(league_id='00', season_year='2024-25', game_type='2')
+        df_all = sched.get_data_frames()[0]
+
+        candidates = []
+        for _, g in df_all.iterrows():
+            raw_date = str(g.get('GAME_DATE_EST', '') or g.get('GAME_DATE', ''))
+            try:
+                game_date = _dt.date.fromisoformat(raw_date[:10])
+            except ValueError:
+                continue
+            if game_date <= today or game_date > cutoff:
+                continue
+            candidates.append({
+                "game_id": str(g.get('GAME_ID', '')),
+                "status":  "Upcoming",
+                "date":    game_date.isoformat(),
+                "time":    str(g.get('GAME_STATUS_TEXT', '')),
+                "home_team": {
+                    "abbr": str(g.get('HOME_TEAM_ABBREVIATION', '')),
+                    "name": str(g.get('HOME_TEAM_NAME', '')),
+                },
+                "away_team": {
+                    "abbr": str(g.get('VISITOR_TEAM_ABBREVIATION', '')),
+                    "name": str(g.get('VISITOR_TEAM_NAME', '')),
+                },
+            })
+
+        result = sorted(candidates, key=lambda x: x['date'])
+        live_cache.set(cache_key, result, ttl=3600)
+        return result
+
+    except Exception as e:
+        print(f"[StatStream] Upcoming games fetch failed: {e}")
+        return []

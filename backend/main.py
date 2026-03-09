@@ -17,6 +17,7 @@ import models, schemas, predictor
 import live_games
 import win_probability
 import live_cache
+import leagueschedule_compat as _lsched
 from database import engine, SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
@@ -907,7 +908,6 @@ def team_schedule(team_abbr: str, season: str = "2024-25"):
 
     # ── Try LeagueSchedule: single API call for the whole season ────────────
     try:
-        import leagueschedule_compat as _lsched
         time.sleep(0.6)
         sched  = _lsched.LeagueSchedule(league_id='00', season_year=season, game_type='2')
         df_all = sched.get_data_frames()[0]
@@ -1066,7 +1066,6 @@ def get_upcoming_games():
     cutoff   = today + _dt.timedelta(days=7)
 
     try:
-        import leagueschedule_compat as _lsched
         time.sleep(0.6)
         sched  = _lsched.LeagueSchedule(league_id='00', season_year='2024-25', game_type='2')
         df_all = sched.get_data_frames()[0]

@@ -82,3 +82,9 @@ export async function getLiveGamesWithProbabilities() {
   if (!res.ok) throw new Error('Failed to fetch live probabilities');
   return res.json();
 }
+
+export async function getUpcomingGames() {
+  const res = await fetch(`${BASE_URL}/games/upcoming`);
+  if (!res.ok) throw new Error('Failed to fetch upcoming games');
+  return res.json();
+}

@@ -14,6 +14,9 @@ from typing import List
 from sqlalchemy import func
 
 import models, schemas, predictor
+import live_games
+import win_probability
+import live_cache
 from database import engine, SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
@@ -975,3 +978,72 @@ def team_schedule(team_abbr: str, season: str = "2024-25"):
     except Exception as e:
         print(f"[StatStream] Schedule fetch failed: {e}")
         return []
+
+
+# ==========================================
+# ENDPOINT: Live games (no probabilities)
+# GET /games/live
+# ==========================================
+@app.get("/games/live")
+def get_live_games():
+    cached = live_cache.get("live_games")
+    if cached is not None:
+        return cached
+
+    games = live_games.fetch_live_games()
+    result = [
+        {
+            "game_id":    g["game_id"],
+            "status":     g["status"],
+            "period":     g["period"],
+            "clock":      g["clock"],
+            "home_team":  dict(g["home_team"]),
+            "away_team":  dict(g["away_team"]),
+            "last_updated": g["last_updated"],
+        }
+        for g in games
+    ]
+    live_cache.set("live_games", result, ttl=20)
+    return result
+
+
+# ==========================================
+# ENDPOINT: Live games with win probability
+# GET /games/live/probabilities
+# ==========================================
+@app.get("/games/live/probabilities")
+def get_live_probabilities():
+    cached = live_cache.get("live_probabilities")
+    if cached is not None:
+        return cached
+
+    games = live_games.fetch_live_games()
+
+    result = []
+    for g in games:
+        home_score = g["home_team"]["score"]
+        away_score = g["away_team"]["score"]
+        period     = g["period"]
+        clock      = g["clock"]
+
+        home_prob, away_prob = win_probability.predict(home_score, away_score, period, clock)
+
+        result.append({
+            "game_id": g["game_id"],
+            "status":  g["status"],
+            "period":  period,
+            "clock":   clock,
+            "home_team": {
+                **g["home_team"],
+                "win_probability": home_prob,
+            },
+            "away_team": {
+                **g["away_team"],
+                "win_probability": away_prob,
+            },
+            "last_updated": g["last_updated"],
+            "model_type": "logistic",
+        })
+
+    live_cache.set("live_probabilities", result, ttl=20)
+    return result

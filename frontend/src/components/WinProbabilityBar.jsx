@@ -23,7 +23,7 @@ export default function WinProbabilityBar({ homeProb, awayProb, homeAbbr, awayAb
         <span style={{ color: homePct > 50 ? 'var(--cyan)' : 'var(--text-secondary)' }}>
           {homeAbbr} {homePct}%
         </span>
-        <span style={{ color: awayPct > 50 ? 'var(--cyan)' : 'var(--text-secondary)' }}>
+        <span style={{ color: awayPct > 50 ? 'var(--orange)' : 'var(--text-secondary)' }}>
           {awayPct}% {awayAbbr}
         </span>
       </div>

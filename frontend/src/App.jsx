@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutGrid, Trophy, Search, Zap, Award, Activity } from 'lucide-react';
+import { LayoutGrid, Trophy, Search, Zap, Award, Activity, BarChart2 } from 'lucide-react';
 import PlayerTable            from './components/PlayerTable';
 import TopScorers             from './components/TopScorers';
 import PlayerSearch           from './components/PlayerSearch';
@@ -8,18 +8,20 @@ import PlayoffSimulator       from './components/PlayoffSimulator';
 import PlayoffBracket         from './components/PlayoffBracket';
 import { TubelightNavbar }    from './components/ui/TubelightNavbar';
 import LiveWinProbability from './components/LiveWinProbability';
+import LineupImpact from './components/LineupImpact';
 import { fetchSeasons }       from './api';
 import logoSrc                from './assets/logo.png';
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 // Icons are pre-rendered elements; TubelightNavbar renders them as-is.
 const TABS = [
-  { id: 'Team Search',   label: 'Team Search',   icon: <Search     size={16} strokeWidth={2.5} /> },
-  { id: 'Live',          label: 'Live',           icon: <Activity   size={16} strokeWidth={2.5} /> },
-  { id: 'Roster',        label: 'Roster',         icon: <LayoutGrid size={16} strokeWidth={2.5} /> },
-  { id: 'Top Scorers',   label: 'Top Scorers',    icon: <Trophy     size={16} strokeWidth={2.5} /> },
-  { id: 'Team Comparer', label: 'Team Comparer',  icon: <Zap        size={16} strokeWidth={2.5} /> },
-  { id: 'Playoffs',      label: 'Playoffs',       icon: <Award      size={16} strokeWidth={2.5} /> },
+  { id: 'Team Search',    label: 'Team Search',    icon: <Search     size={16} strokeWidth={2.5} /> },
+  { id: 'Live',           label: 'Live',            icon: <Activity   size={16} strokeWidth={2.5} /> },
+  { id: 'Lineups',        label: 'Lineups',         icon: <BarChart2  size={16} strokeWidth={2.5} /> },
+  { id: 'Roster',         label: 'Roster',          icon: <LayoutGrid size={16} strokeWidth={2.5} /> },
+  { id: 'Top Scorers',    label: 'Top Scorers',     icon: <Trophy     size={16} strokeWidth={2.5} /> },
+  { id: 'Team Comparer',  label: 'Team Comparer',   icon: <Zap        size={16} strokeWidth={2.5} /> },
+  { id: 'Playoffs',       label: 'Playoffs',        icon: <Award      size={16} strokeWidth={2.5} /> },
 ];
 
 export default function App() {
@@ -156,8 +158,9 @@ export default function App() {
           {activeSeason && activeTab === 'Top Scorers'   && <TopScorers       season={activeSeason} />}
           {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} />}
           {activeSeason && activeTab === 'Team Comparer' && <TeamComparer     season={activeSeason} />}
-          {activeTab === 'Live' && <LiveWinProbability />}
-          {activeSeason && activeTab === 'Playoffs'      && <PlayoffSimulator season={activeSeason} />}
+          {activeTab === 'Live'    && <LiveWinProbability />}
+          {activeSeason && activeTab === 'Lineups'   && <LineupImpact    season={activeSeason} />}
+          {activeSeason && activeTab === 'Playoffs'  && <PlayoffSimulator season={activeSeason} />}
         </div>
       </main>
 

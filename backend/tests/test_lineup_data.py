@@ -34,8 +34,8 @@ def _make_adv_df():
 
 
 class FakeLeagueDashLineups:
-    def __init__(self, measure_type_simple_nullable="Base", **kwargs):
-        self._measure = measure_type_simple_nullable
+    def __init__(self, measure_type_detailed_defense="Base", **kwargs):
+        self._measure = measure_type_detailed_defense
 
     def get_data_frames(self):
         if self._measure == "Base":

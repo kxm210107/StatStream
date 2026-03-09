@@ -33,16 +33,16 @@ def fetch_lineup_rows(team_abbr: str, season: str) -> list[dict]:
     base = LeagueDashLineups(
         season=season,
         team_id_nullable=team_id,
-        measure_type_simple_nullable="Base",
-        per_mode_simple="Totals",
+        measure_type_detailed_defense="Base",
+        per_mode_detailed="Totals",
     )
     base_df = base.get_data_frames()[0]
 
     adv = LeagueDashLineups(
         season=season,
         team_id_nullable=team_id,
-        measure_type_simple_nullable="Advanced",
-        per_mode_simple="Totals",
+        measure_type_detailed_defense="Advanced",
+        per_mode_detailed="Totals",
     )
     adv_df = adv.get_data_frames()[0]
 

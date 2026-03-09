@@ -1,4 +1,5 @@
 # backend/schemas.py
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 class PlayerStatSchema(BaseModel):
@@ -11,6 +12,7 @@ class PlayerStatSchema(BaseModel):
     pts_per_game: float
     reb_per_game: float
     ast_per_game: float
+    position:     Optional[str] = None
 
 class LeagueAverages(BaseModel):
     avg_pts: float
@@ -32,3 +34,23 @@ class CompareResult(BaseModel):
     team2:      TeamStats
     home_team:  str
     model_type: str   # 'ml' or 'weighted'
+
+# ── Live game schemas ─────────────────────────────────────────────────────────
+
+class LiveTeam(BaseModel):
+    abbr:             str
+    name:             str
+    score:            int
+    win_probability:  float   # 0.0 – 1.0
+
+class LiveGame(BaseModel):
+    game_id:      str
+    status:       str          # "Live", "Final", "Scheduled"
+    home_team:    LiveTeam
+    away_team:    LiveTeam
+    period:       int          # 1-4 (0 = not started)
+    clock:        str          # normalised to "MM:SS"
+    last_updated: str          # ISO-8601 UTC
+
+class LiveGameWithProbability(LiveGame):
+    model_type: str = "logistic"

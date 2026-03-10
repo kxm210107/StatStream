@@ -126,7 +126,7 @@ function ScoreFlash({ plays, teamAbbr, side }) {
       setFlashes(prev => prev.filter(f => !newFlashes.find(n => n.id === f.id)));
     }, 1800);
     return () => clearTimeout(timer);
-  }, [plays]);
+  }, [plays, teamAbbr]);
 
   if (flashes.length === 0) return null;
 

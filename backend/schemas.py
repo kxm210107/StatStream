@@ -86,3 +86,29 @@ class LineupResponse(BaseModel):
     team:    str
     season:  str
     lineups: list[LineupSummary]
+
+# ── Account schemas ────────────────────────────────────────────────────────────
+
+class AccountProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    auth_user_id:       str
+    email:              str
+    favorite_team_abbr: Optional[str] = None
+    created_at:         Optional[str] = None
+
+
+class FavoriteTeamUpdate(BaseModel):
+    favorite_team_abbr: Optional[str] = None
+
+
+class UserSettingsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    default_season: Optional[str] = None
+    settings_json:  Optional[str] = None
+
+
+class UserSettingsUpdate(BaseModel):
+    default_season: Optional[str] = None
+    settings_json:  Optional[str] = None

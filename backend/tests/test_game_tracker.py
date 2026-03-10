@@ -57,6 +57,15 @@ class TestRecordProb:
         assert game_tracker.get_prob_history("g1")[0]["home_prob"] == 0.5
         assert game_tracker.get_prob_history("g2")[0]["home_prob"] == 0.7
 
+    def test_caps_at_576_entries(self):
+        state = game_tracker._get("g1")
+        # Fill with 577 entries directly (bypassing record_prob's dedup)
+        for i in range(577):
+            state.prob_history.append({"elapsed_sec": i, "home_prob": 0.5})
+        # Call record_prob with a new unique elapsed to trigger the cap check
+        game_tracker.record_prob("g1", 1, "01:00", 0.5)  # elapsed = 720-60 = 660 (unique)
+        assert len(game_tracker.get_prob_history("g1")) <= 576
+
 
 class TestScoringPlays:
     def test_drain_returns_plays(self):
@@ -79,3 +88,14 @@ class TestScoringPlays:
         game_tracker.add_scoring_plays("g1", [], last_action_number=42)
         game_tracker.add_scoring_plays("g1", [], last_action_number=10)
         assert game_tracker.get_last_action_number("g1") == 42
+
+    def test_last_action_number_default_zero(self):
+        assert game_tracker.get_last_action_number("unseen-game-id") == 0
+
+    def test_clear_all_removes_state(self):
+        game_tracker.record_prob("g1", 2, "06:00", 0.6)
+        game_tracker.add_scoring_plays("g1", [{"action_number": 1}], 1)
+        game_tracker.clear_all()
+        assert game_tracker.get_prob_history("g1") == []
+        assert game_tracker.get_last_action_number("g1") == 0
+        assert game_tracker.drain_new_plays("g1") == []

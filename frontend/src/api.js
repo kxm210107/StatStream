@@ -1,6 +1,6 @@
 // frontend/src/api.js
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 /** Returns a sorted list of seasons available in the DB, e.g. ["2024-25", "2023-24", …] */
 export async function fetchSeasons() {

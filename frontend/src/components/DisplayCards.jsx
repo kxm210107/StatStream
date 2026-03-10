@@ -27,29 +27,45 @@
  */
 
 import { useState } from 'react';
+import { getTeamLogoUrl, getPlayerHeadshotUrl } from '../utils/teamLogos';
+
+function TeamLogo({ abbr, size = 26 }) {
+  const url = getTeamLogoUrl(abbr);
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt={abbr}
+      width={size}
+      height={size}
+      style={{ objectFit: 'contain', flexShrink: 0 }}
+      onError={e => { e.target.style.display = 'none'; }}
+    />
+  );
+}
 
 // ── NBA Analytics stat preset registry ───────────────────────────────────────
 const STAT_PRESETS = {
   pts: {
     label:  'PTS',
     field:  'pts_per_game',
-    color:  'var(--cyan)',
-    bg:     'rgba(0,212,255,0.12)',
-    border: 'rgba(0,212,255,0.25)',
+    color:  '#22D3EE',
+    bg:     'rgba(34,211,238,0.08)',
+    border: 'rgba(34,211,238,0.2)',
   },
   reb: {
     label:  'REB',
     field:  'reb_per_game',
-    color:  'var(--green)',
-    bg:     'rgba(16,185,129,0.12)',
-    border: 'rgba(16,185,129,0.25)',
+    color:  '#4ADE80',
+    bg:     'rgba(74,222,128,0.08)',
+    border: 'rgba(74,222,128,0.2)',
   },
   ast: {
     label:  'AST',
     field:  'ast_per_game',
-    color:  'var(--orange)',
-    bg:     'rgba(245,158,11,0.12)',
-    border: 'rgba(245,158,11,0.25)',
+    color:  '#F97316',
+    bg:     'rgba(249,115,22,0.08)',
+    border: 'rgba(249,115,22,0.2)',
   },
 };
 
@@ -88,13 +104,15 @@ function StatBar({ label, value, max, color }) {
         {/* Fill */}
         <div style={{
           height: '100%', width: `${pct}%`,
-          background: color, borderRadius: 3, opacity: 0.85,
+          background: `linear-gradient(90deg, ${color}CC, ${color})`,
+          boxShadow: `0 0 6px ${color}60`,
+          borderRadius: 3,
           transition: 'width 0.45s ease',
         }} />
       </div>
 
       <span style={{
-        fontSize: 14, fontWeight: 800, color,
+        fontSize: 22, fontWeight: 700, color,
         width: 34, textAlign: 'right', flexShrink: 0,
       }}>
         {value?.toFixed(1)}
@@ -115,11 +133,9 @@ function RankBadge({ rank, isLeader }) {
         width: 30, height: 30, borderRadius: 8, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: rank < 3 ? 16 : 12, fontWeight: 800,
-        background: isLeader
-          ? 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2))'
-          : 'var(--bg-secondary)',
-        color:  isLeader ? 'var(--cyan)' : 'var(--text-muted)',
-        border: isLeader ? '1px solid rgba(0,212,255,0.25)' : '1px solid var(--border)',
+        background: isLeader ? 'rgba(245,158,11,0.1)' : 'var(--bg-hover)',
+        color:  isLeader ? '#F59E0B' : 'var(--text-muted)',
+        border: isLeader ? '1px solid rgba(245,158,11,0.5)' : '1px solid var(--border)',
         userSelect: 'none',
       }}
     >
@@ -134,49 +150,88 @@ function RankBadge({ rank, isLeader }) {
  * A hoverable player stat card for use in a responsive grid layout.
  * Keyboard-focusable with visible focus ring.
  */
-function GridCard({ player, rank, showRank, showTeam, resolvedStats }) {
+function GridCard({ player, rank, showRank, showTeam, showHeadshot, resolvedStats }) {
   const isLeader = rank === 0;
+  const [imgError, setImgError] = useState(false);
+  const headshotUrl = showHeadshot && player.player_id
+    ? getPlayerHeadshotUrl(player.player_id)
+    : null;
 
   return (
     <article
       aria-label={`${player.player_name} player card`}
       tabIndex={0}
       style={{
-        background: 'linear-gradient(145deg, #0F1829, #0B1020)',
-        border:     `1px solid ${isLeader ? 'rgba(0,212,255,0.35)' : 'var(--border-light)'}`,
-        borderRadius: 14,
+        background: 'var(--bg-card)',
+        border:     '1px solid var(--border-light)',
+        borderRadius: 12,
         overflow: 'hidden',
-        transition: 'transform 0.18s, border-color 0.18s, box-shadow 0.18s',
-        boxShadow: isLeader ? '0 0 20px rgba(0,212,255,0.07)' : 'none',
+        transition: 'border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease',
+        boxShadow: 'none',
         outline: 'none',
-        cursor: 'default',
+        cursor: 'pointer',
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform    = 'translateY(-2px)';
-        e.currentTarget.style.borderColor  = isLeader ? 'rgba(0,212,255,0.55)' : 'var(--border-bright)';
-        e.currentTarget.style.boxShadow    = '0 6px 24px rgba(0,0,0,0.4)';
+        e.currentTarget.style.borderColor  = 'rgba(255,255,255,0.35)';
+        e.currentTarget.style.boxShadow    = '0 0 24px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.4)';
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform    = 'none';
-        e.currentTarget.style.borderColor  = isLeader ? 'rgba(0,212,255,0.35)' : 'var(--border-light)';
-        e.currentTarget.style.boxShadow    = isLeader ? '0 0 20px rgba(0,212,255,0.07)' : 'none';
+        e.currentTarget.style.borderColor  = 'var(--border-light)';
+        e.currentTarget.style.boxShadow    = 'none';
       }}
       onFocus={e => {
-        e.currentTarget.style.outline      = '2px solid rgba(0,212,255,0.6)';
+        e.currentTarget.style.outline      = '2px solid rgba(255,255,255,0.5)';
         e.currentTarget.style.outlineOffset = '2px';
       }}
       onBlur={e => {
         e.currentTarget.style.outline = 'none';
       }}
     >
+      {/* ── Headshot banner ── */}
+      {headshotUrl && !imgError && (
+        <div style={{
+          height: 96,
+          background: 'linear-gradient(180deg, var(--bg-card-2) 0%, var(--bg-card) 100%)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          overflow: 'hidden', position: 'relative',
+        }}>
+          {showRank && (
+            <div style={{
+              position: 'absolute', top: 8, left: 10,
+              background: isLeader ? 'rgba(245,158,11,0.1)' : 'var(--bg-hover)',
+              border: isLeader ? '1px solid rgba(245,158,11,0.5)' : '1px solid var(--border)',
+              borderRadius: 6, padding: '2px 7px',
+              fontSize: rank < 3 ? 14 : 11, fontWeight: 800,
+              color: isLeader ? '#F59E0B' : 'var(--text-muted)',
+            }}>
+              {rank < 3 ? MEDALS[rank] : rank + 1}
+            </div>
+          )}
+          <img
+            src={headshotUrl}
+            alt={player.player_name}
+            style={{
+              height: 110,
+              width: 'auto',
+              objectFit: 'contain',
+              objectPosition: 'top',
+              marginBottom: -6,
+            }}
+            onError={() => setImgError(true)}
+          />
+        </div>
+      )}
+
       {/* ── Card header ── */}
       <div style={{
         padding: '13px 16px 10px',
         borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: 10,
-        background: isLeader ? 'rgba(0,212,255,0.04)' : 'transparent',
+        background: 'transparent',
       }}>
-        {showRank && <RankBadge rank={rank} isLeader={isLeader} />}
+        {(!headshotUrl || imgError) && showRank && <RankBadge rank={rank} isLeader={isLeader} />}
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
@@ -187,11 +242,26 @@ function GridCard({ player, rank, showRank, showTeam, resolvedStats }) {
             {player.player_name}
           </p>
 
-          {showTeam && player.team && (
-            <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
-              {player.team}
-            </p>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+            {player.position && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                color: 'var(--text-muted)',
+                background: 'var(--bg-hover)', border: '1px solid var(--border)',
+                borderRadius: 4, padding: '1px 6px',
+              }}>
+                {player.position}
+              </span>
+            )}
+            {showTeam && player.team && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <TeamLogo abbr={player.team} size={18} />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {player.team}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -236,10 +306,8 @@ function StackCard({ player, rank, showRank, showTeam, resolvedStats }) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
       }}
       style={{
-        background: expanded
-          ? 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.04))'
-          : 'var(--bg-card)',
-        border: `1px solid ${expanded ? 'rgba(0,212,255,0.3)' : 'var(--border-light)'}`,
+        background: expanded ? 'var(--bg-card-2)' : 'var(--bg-card)',
+        border: `1px solid ${expanded ? 'var(--border-bright)' : 'var(--border-light)'}`,
         borderRadius: 10,
         cursor: 'pointer',
         overflow: 'hidden',
@@ -248,7 +316,7 @@ function StackCard({ player, rank, showRank, showTeam, resolvedStats }) {
       }}
       onMouseEnter={e => { if (!expanded) e.currentTarget.style.borderColor = 'var(--border-bright)'; }}
       onMouseLeave={e => { if (!expanded) e.currentTarget.style.borderColor = 'var(--border-light)'; }}
-      onFocus={e  => { e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,212,255,0.3)'; }}
+      onFocus={e  => { e.currentTarget.style.boxShadow = '0 0 0 2px rgba(224,62,68,0.25)'; }}
       onBlur={e   => { e.currentTarget.style.boxShadow = 'none'; }}
     >
       {/* ── Collapsed summary row ── */}
@@ -260,7 +328,7 @@ function StackCard({ player, rank, showRank, showTeam, resolvedStats }) {
             aria-hidden="true"
             style={{
               minWidth: 22, fontSize: 13, fontWeight: 800, textAlign: 'center',
-              color: isLeader ? 'var(--cyan)' : rank < 3 ? '#C0D8F0' : 'var(--text-secondary)',
+              color: isLeader ? 'var(--accent)' : rank < 3 ? 'var(--text-primary)' : 'var(--text-secondary)',
             }}
           >
             {rank + 1}
@@ -278,9 +346,12 @@ function StackCard({ player, rank, showRank, showTeam, resolvedStats }) {
           </p>
 
           {showTeam && player.team && (
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 11 }}>
-              {player.team}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+              <TeamLogo abbr={player.team} size={16} />
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 11 }}>
+                {player.team}
+              </p>
+            </div>
           )}
         </div>
 
@@ -343,7 +414,12 @@ function EmptyState({ icon = '🏀', title = 'No players found', message }) {
     <div
       role="status"
       aria-live="polite"
-      style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-muted)' }}
+      style={{
+        textAlign: 'center', padding: '50px 24px', color: 'var(--text-muted)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: 12,
+        background: 'rgba(255,255,255,0.03)',
+      }}
     >
       <div style={{ fontSize: 40, marginBottom: 12 }} aria-hidden="true">{icon}</div>
       <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
@@ -361,6 +437,7 @@ export default function DisplayCards({
   variant      = 'grid',
   showRank     = true,
   showTeam     = true,
+  showHeadshot = false,
   stats        = DEFAULT_STATS,
   maxStats,
   loading      = false,
@@ -447,6 +524,7 @@ export default function DisplayCards({
             rank={i}
             showRank={showRank}
             showTeam={showTeam}
+            showHeadshot={showHeadshot}
             resolvedStats={playerStats(player)}
           />
         </div>

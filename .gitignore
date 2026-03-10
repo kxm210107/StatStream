@@ -13,5 +13,28 @@ frontend/node_modules/
 frontend/dist/
 frontend/src/node_modules/
 
-# Environment
+# Environment — never commit secrets
 .env
+.env.local
+backend/.env
+frontend/.env
+frontend/.env.local
+# .env.production IS committed (no secrets, just the URL template)
+
+# Media / recordings
+*.mkv
+
+# Screenshots
+screenshots/
+
+# MCP config
+.mcp.json
+
+# macOS
+.DS_Store
+
+# Root node_modules (leftover)
+node_modules/
+
+# VSCode personal settings
+.vscode/

@@ -33,6 +33,7 @@ def patch_live_games(monkeypatch):
     import game_tracker
     monkeypatch.setattr(live_games, "fetch_live_games", lambda: FAKE_GAMES)
     monkeypatch.setattr(play_by_play, "fetch_scoring_plays", lambda gid, since: ([], since))
+    monkeypatch.setattr(play_by_play, "fetch_full_game_history", lambda gid: [])
     game_tracker.clear_all()
     live_cache.clear()
     yield

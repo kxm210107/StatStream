@@ -46,6 +46,10 @@ def fetch_lineup_rows(team_abbr: str, season: str) -> list[dict]:
     )
     adv_df = adv.get_data_frames()[0]
 
+    abbr_upper = team_abbr.upper()
+    base_df = base_df[base_df["TEAM_ABBREVIATION"] == abbr_upper]
+    adv_df  = adv_df[adv_df["TEAM_ABBREVIATION"]  == abbr_upper]
+
     merged = base_df[["GROUP_ID", "GROUP_NAME", "MIN", "PTS", "PLUS_MINUS"]].merge(
         adv_df[["GROUP_ID", "OFF_RATING", "DEF_RATING", "NET_RATING"]],
         on="GROUP_ID",

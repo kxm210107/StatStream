@@ -34,7 +34,7 @@ export default function LineupTable({ lineups, sortBy, onSort }) {
 
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
             {COLUMNS.map(col => (
@@ -42,11 +42,11 @@ export default function LineupTable({ lineups, sortBy, onSort }) {
                 key={col.key}
                 style={{
                   width: col.width,
-                  padding: '8px 10px',
+                  padding: '12px 14px',
                   textAlign: col.key === 'players' ? 'left' : 'right',
                   color: sortBy === col.key ? 'var(--accent)' : 'var(--text-muted)',
                   fontWeight: 700,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   cursor: col.sortable ? 'pointer' : 'default',
@@ -83,7 +83,7 @@ export default function LineupTable({ lineups, sortBy, onSort }) {
                   <td
                     key={col.key}
                     style={{
-                      padding: '10px 10px',
+                      padding: '14px 14px',
                       textAlign: isPlayers ? 'left' : 'right',
                       color: isPlayers ? 'var(--text-secondary)' : displayColor,
                       fontWeight: isNetRtg ? 700 : 400,
@@ -91,9 +91,9 @@ export default function LineupTable({ lineups, sortBy, onSort }) {
                     }}
                   >
                     {isPlayers ? (
-                      <span style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
+                      <span style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 10px' }}>
                         {value.map((name, j) => (
-                          <span key={j} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                          <span key={j} style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
                             {name}{j < value.length - 1 ? ' ·' : ''}
                           </span>
                         ))}

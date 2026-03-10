@@ -11,25 +11,27 @@ import pandas as pd
 def _make_base_df():
     return pd.DataFrame([
         {
-            "GROUP_ID":   "atl_0001",
-            "GROUP_NAME": "Trae Young - Dyson Daniels - Jalen Johnson - Zaccharie Risacher - Onyeka Okongwu",
-            "MIN":        142.6,
-            "PTS":        318,
-            "PLUS_MINUS": 31,
+            "GROUP_ID":           "atl_0001",
+            "GROUP_NAME":         "Trae Young - Dyson Daniels - Jalen Johnson - Zaccharie Risacher - Onyeka Okongwu",
+            "TEAM_ABBREVIATION":  "ATL",
+            "MIN":                142.6,
+            "PTS":                318,
+            "PLUS_MINUS":         31,
         },
         {
-            "GROUP_ID":   "atl_0002",
-            "GROUP_NAME": "Trae Young - Vit Krejci - Jalen Johnson - Zaccharie Risacher - Onyeka Okongwu",
-            "MIN":        55.3,
-            "PTS":        120,
-            "PLUS_MINUS": -8,
+            "GROUP_ID":           "atl_0002",
+            "GROUP_NAME":         "Trae Young - Vit Krejci - Jalen Johnson - Zaccharie Risacher - Onyeka Okongwu",
+            "TEAM_ABBREVIATION":  "ATL",
+            "MIN":                55.3,
+            "PTS":                120,
+            "PLUS_MINUS":         -8,
         },
     ])
 
 def _make_adv_df():
     return pd.DataFrame([
-        {"GROUP_ID": "atl_0001", "OFF_RATING": 118.4, "DEF_RATING": 106.8, "NET_RATING": 11.6},
-        {"GROUP_ID": "atl_0002", "OFF_RATING": 105.1, "DEF_RATING": 112.0, "NET_RATING": -6.9},
+        {"GROUP_ID": "atl_0001", "TEAM_ABBREVIATION": "ATL", "OFF_RATING": 118.4, "DEF_RATING": 106.8, "NET_RATING": 11.6},
+        {"GROUP_ID": "atl_0002", "TEAM_ABBREVIATION": "ATL", "OFF_RATING": 105.1, "DEF_RATING": 112.0, "NET_RATING": -6.9},
     ])
 
 

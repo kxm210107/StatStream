@@ -2,6 +2,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import time
 import pytest
 import game_tracker
 
@@ -91,6 +92,20 @@ class TestScoringPlays:
 
     def test_last_action_number_default_zero(self):
         assert game_tracker.get_last_action_number("unseen-game-id") == 0
+
+    def test_stale_plays_discarded_on_drain(self):
+        state = game_tracker._get("g1")
+        # Inject a play that's already 20 seconds old (beyond the 15s TTL)
+        state._pending_plays.append({"action_number": 1, "team_abbr": "LAL", "points": 2, "queued_at": time.time() - 20})
+        drained = game_tracker.drain_new_plays("g1")
+        assert drained == []
+
+    def test_fresh_plays_kept_on_drain(self):
+        plays = [{"action_number": 2, "team_abbr": "BOS", "points": 3}]
+        game_tracker.add_scoring_plays("g1", plays, last_action_number=2)
+        drained = game_tracker.drain_new_plays("g1")
+        assert len(drained) == 1
+        assert drained[0]["team_abbr"] == "BOS"
 
     def test_clear_all_removes_state(self):
         game_tracker.record_prob("g1", 2, "06:00", 0.6)

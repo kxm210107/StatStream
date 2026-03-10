@@ -6,7 +6,6 @@ Falls back to a calibrated sigmoid heuristic if the model file is missing.
 
 import os
 import math
-import numpy as np
 
 MODEL_PATH    = os.path.join(os.path.dirname(__file__), "win_prob_model.pkl")
 _model        = None
@@ -54,19 +53,13 @@ def predict(home_score: int, away_score: int, period: int, clock: str) -> tuple[
     score_diff        = home_score - away_score
     seconds_remaining = _clock_to_seconds_remaining(period, clock)
 
-    model = _load()
-    if model is not None:
-        X     = np.array([[score_diff, seconds_remaining]], dtype=float)
-        proba = model.predict_proba(X)[0]
-        # classes_: [0 = away wins, 1 = home wins]
-        home_prob = float(proba[1])
+    # Sigmoid heuristic: calibrated so a 10-pt lead with 2 min left ~= 90%
+    # (ML model bypassed — produces overconfident predictions)
+    if seconds_remaining <= 0:
+        home_prob = 1.0 if score_diff > 0 else (0.5 if score_diff == 0 else 0.0)
     else:
-        # Sigmoid fallback: calibrated so a 10-pt lead with 2 min left ~= 90%
-        if seconds_remaining <= 0:
-            home_prob = 1.0 if score_diff > 0 else (0.5 if score_diff == 0 else 0.0)
-        else:
-            z         = score_diff / (0.0091 * seconds_remaining + 1.8)
-            home_prob = 1 / (1 + math.exp(-z * 1.5))
+        z         = score_diff / (0.0091 * seconds_remaining + 1.8)
+        home_prob = 1 / (1 + math.exp(-z * 1.5))
 
     # Clamp and return
     home_prob = max(0.01, min(0.99, home_prob))

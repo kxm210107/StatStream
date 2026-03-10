@@ -4,9 +4,11 @@ In-memory per-game state for live win probability tracking.
 Stores probability history (full game arc) and queues new scoring plays
 for the next API response.
 """
+import time
 from dataclasses import dataclass, field
 
 REGULATION_SECONDS = 2880  # 48 min × 60
+_PLAY_TTL_SECONDS = 15  # discard plays older than this on drain
 
 
 @dataclass
@@ -14,6 +16,7 @@ class _GameState:
     prob_history: list = field(default_factory=list)   # [{elapsed_sec, home_prob}]
     last_action_number: int = 0
     _pending_plays: list = field(default_factory=list)  # drained on each read
+    backfilled: bool = False
 
 
 _states: dict[str, _GameState] = {}
@@ -66,16 +69,26 @@ def get_last_action_number(game_id: str) -> int:
 def add_scoring_plays(game_id: str, plays: list, last_action_number: int) -> None:
     """Queue new scoring plays and advance the last-seen action counter."""
     state = _get(game_id)
-    state._pending_plays.extend(plays)
+    now = time.time()
+    state._pending_plays.extend({**p, "queued_at": now} for p in plays)
     state.last_action_number = max(state.last_action_number, last_action_number)
 
 
 def drain_new_plays(game_id: str) -> list:
-    """Return and clear the pending scoring plays."""
+    """Return and clear pending scoring plays, dropping stale ones."""
     state = _get(game_id)
-    plays = list(state._pending_plays)
+    cutoff = time.time() - _PLAY_TTL_SECONDS
+    plays = [p for p in state._pending_plays if p.get("queued_at", 0) >= cutoff]
     state._pending_plays.clear()
     return plays
+
+
+def is_backfilled(game_id: str) -> bool:
+    return _get(game_id).backfilled
+
+
+def mark_backfilled(game_id: str) -> None:
+    _get(game_id).backfilled = True
 
 
 def clear_all() -> None:

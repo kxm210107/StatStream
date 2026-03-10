@@ -13,3 +13,4 @@ class PlayerStat(Base):
     pts_per_game = Column(Float)
     reb_per_game = Column(Float)
     ast_per_game = Column(Float)
+    position     = Column(String, nullable=True)

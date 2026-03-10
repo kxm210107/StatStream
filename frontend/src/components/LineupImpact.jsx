@@ -46,10 +46,10 @@ export default function LineupImpact({ season = '2025-26' }) {
   return (
     <div>
       {/* ── Controls ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 28 }}>
         {/* Team selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
             Team
           </label>
           <select
@@ -60,8 +60,8 @@ export default function LineupImpact({ season = '2025-26' }) {
               color: 'var(--text-secondary)',
               border: '1px solid var(--border-light)',
               borderRadius: 8,
-              padding: '6px 12px',
-              fontSize: 13,
+              padding: '8px 16px',
+              fontSize: 15,
               fontFamily: 'inherit',
               cursor: 'pointer',
               colorScheme: 'dark',
@@ -73,8 +73,8 @@ export default function LineupImpact({ season = '2025-26' }) {
         </div>
 
         {/* Min minutes */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
             Min Minutes
           </label>
           <input
@@ -85,13 +85,13 @@ export default function LineupImpact({ season = '2025-26' }) {
             value={minMinutes}
             onChange={e => setMinMinutes(Number(e.target.value))}
             style={{
-              width: 80,
+              width: 90,
               background: 'rgba(255,255,255,0.05)',
               color: 'var(--text-secondary)',
               border: '1px solid var(--border-light)',
               borderRadius: 8,
-              padding: '6px 12px',
-              fontSize: 13,
+              padding: '8px 12px',
+              fontSize: 15,
               fontFamily: 'inherit',
               colorScheme: 'dark',
               outline: 'none',
@@ -100,17 +100,17 @@ export default function LineupImpact({ season = '2025-26' }) {
         </div>
 
         {/* Season badge */}
-        <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>
+        <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.06em' }}>
           {season} Season
         </div>
       </div>
 
       {/* ── Heading ── */}
-      <div style={{ marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
           {team} — 5-Man Lineups
         </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
+        <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
           Sorted by {sortBy.replace(/_/g, ' ')} · Min {minMinutes} min
         </p>
       </div>

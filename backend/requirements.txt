@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+slowapi
+sqlalchemy
+psycopg2-binary
+python-dotenv
+pandas
+nba_api
+scikit-learn
+joblib
+numpy

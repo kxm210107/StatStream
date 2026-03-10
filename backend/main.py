@@ -1,14 +1,17 @@
 # backend/main.py
 """
 cd /Users/kevjumba/PycharmProjects/StatStream/backend
-uvicorn main:app --reload --port 8000
-"""
+@"""
 import datetime
 import math
 import random
 import numpy as np
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy import func
@@ -47,9 +50,19 @@ with engine.connect() as _conn:
 
 app = FastAPI(title="StatStream API", version="2.0")
 
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+# Global default: 100 requests/minute per IP.
+# Expensive endpoints override with tighter limits via @limiter.limit().
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+import os as _os
+_allowed_origins = _os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=_allowed_origins,
     allow_methods=["GET"],
     allow_headers=["Content-Type"],
     allow_credentials=False,
@@ -582,7 +595,9 @@ def _db_team_info(db: Session, season: str) -> dict:
 # GET /playoff/simulate?season=2024-25&n_sims=5000
 # ==========================================
 @app.get("/playoff/simulate")
+@limiter.limit("5/minute")
 def simulate_playoffs(
+    request: Request,
     season: str = "2024-25",
     n_sims: int = Query(default=5000, ge=100, le=25000),
     db: Session = Depends(get_db),
@@ -886,7 +901,9 @@ def team_dashboard(team_abbr: str, season: str = "2024-25"):
 # GET /teams/{abbr}/lineups
 # ==========================================
 @app.get("/teams/{abbr}/lineups", response_model=schemas.LineupResponse)
+@limiter.limit("20/minute")
 async def get_team_lineups(
+    request: Request,
     abbr:        str,
     season:      str   = "2025-26",
     min_minutes: float = 20.0,
@@ -1072,6 +1089,20 @@ def get_live_probabilities():
             home_score = g["home_team"]["score"]
             away_score = g["away_team"]["score"]
             home_prob, away_prob = win_probability.predict(home_score, away_score, period, clock)
+
+            # Backfill full game history on first encounter
+            if not game_tracker.is_backfilled(game_id):
+                historical = play_by_play.fetch_full_game_history(game_id)
+                for p in historical:
+                    h_prob, _ = win_probability.predict(
+                        p["score_home"], p["score_away"], p["period"], p["clock"]
+                    )
+                    game_tracker.record_prob(game_id, p["period"], p["clock"], h_prob)
+                if historical:
+                    game_tracker.add_scoring_plays(
+                        game_id, [], max(p["action_number"] for p in historical)
+                    )
+                game_tracker.mark_backfilled(game_id)
 
             # Record probability snapshot
             game_tracker.record_prob(game_id, period, clock, home_prob)

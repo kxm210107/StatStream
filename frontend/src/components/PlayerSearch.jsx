@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { fetchPlayersByTeam } from '../api';
-import DisplayCards from './DisplayCards';
+import { fetchPlayersByTeam, fetchTeamDashboard, fetchTeamSchedule } from '../api';
+import TeamDashboard from './TeamDashboard';
+import { getTeamLogoUrl } from '../utils/teamLogos';
 
 const NBA_TEAMS = [
   { abbr: 'ATL', name: 'Atlanta Hawks'            },
@@ -36,16 +37,19 @@ const NBA_TEAMS = [
 ];
 
 export default function PlayerSearch({ season = '2024-25' }) {
-  const [query,    setQuery   ] = useState('');
-  const [open,     setOpen    ] = useState(false);
-  const [players,  setPlayers ] = useState([]);
-  const [loading,  setLoading ] = useState(false);
-  const [error,    setError   ] = useState(null);
-  const [teamLabel, setTeamLabel] = useState('');
+  const [query,     setQuery    ] = useState('');
+  const [open,      setOpen     ] = useState(false);
+  const [loading,   setLoading  ] = useState(false);
+  const [error,     setError    ] = useState(null);
+  const [teamAbbr,  setTeamAbbr ] = useState('');
+  const [teamName,  setTeamName ] = useState('');
+  const [players,   setPlayers  ] = useState([]);
+  const [dashData,  setDashData ] = useState(null);
+  const [schedule,  setSchedule ] = useState([]);
+  const [schedLoading, setSchedLoading] = useState(false);
 
   const wrapRef = useRef(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handler(e) {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
@@ -54,68 +58,89 @@ export default function PlayerSearch({ season = '2024-25' }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Reset on season change
+  useEffect(() => {
+    setPlayers([]);
+    setDashData(null);
+    setSchedule([]);
+    setError(null);
+    setTeamAbbr('');
+    setTeamName('');
+    setQuery('');
+  }, [season]);
+
   const filtered = NBA_TEAMS.filter(t =>
     t.abbr.includes(query.toUpperCase()) ||
     t.name.toLowerCase().includes(query.toLowerCase())
   );
 
-  // Clear results when season changes
-  useEffect(() => {
-    setPlayers([]);
-    setError(null);
-    setTeamLabel('');
-    setQuery('');
-  }, [season]);
-
   async function search(abbr, fullName) {
     setOpen(false);
     setQuery(abbr);
-    setTeamLabel(fullName);
+    setTeamAbbr(abbr);
+    setTeamName(fullName);
     setLoading(true);
     setError(null);
     setPlayers([]);
+    setDashData(null);
+    setSchedule([]);
     try {
-      const data = await fetchPlayersByTeam(abbr, season);
-      setPlayers(data);
+      const [rosterData, dash] = await Promise.all([
+        fetchPlayersByTeam(abbr, season),
+        fetchTeamDashboard(abbr, season),
+      ]);
+      setPlayers(rosterData);
+      setDashData(dash);
+      // Fetch schedule separately — it's slow (ScoreboardV2 loops up to 14 days)
+      setSchedLoading(true);
+      fetchTeamSchedule(abbr)
+        .then(sched => setSchedule(sched))
+        .catch(() => {})
+        .finally(() => setSchedLoading(false));
     } catch {
-      setError(`No roster data found for "${fullName}" in ${season}.`);
+      setError(`Could not load dashboard for "${fullName}" in ${season}.`);
     } finally {
       setLoading(false);
     }
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && filtered.length > 0) {
-      search(filtered[0].abbr, filtered[0].name);
-    }
+    if (e.key === 'Enter' && filtered.length > 0) search(filtered[0].abbr, filtered[0].name);
     if (e.key === 'Escape') setOpen(false);
   }
 
-  const sorted = [...players].sort((a, b) => b.pts_per_game - a.pts_per_game);
+  const hasDashboard = !loading && !error && dashData;
 
   return (
     <div>
-      {/* ── Header ── */}
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-          Team Roster Search
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 3 }}>
-          Pick a team to see their full player stats
-        </p>
-      </div>
+      {/* Header */}
+      {!hasDashboard && (
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+            Team Dashboard
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 3 }}>
+            Pick a team to see their full dashboard
+          </p>
+        </div>
+      )}
 
-      {/* ── Dropdown search ── */}
-      <div ref={wrapRef} style={{ position: 'relative', maxWidth: 440, marginBottom: 28 }}>
+      {/* Search bar — always visible */}
+      <div ref={wrapRef} style={{ position: 'relative', maxWidth: 440, marginBottom: hasDashboard ? 24 : 28 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <span style={{
               position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-              fontSize: 15, pointerEvents: 'none', color: 'var(--text-muted)',
-            }}>🏀</span>
+              pointerEvents: 'none', color: 'var(--text-muted)', display: 'flex',
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
             <input
               className="ss-input"
-              placeholder="Search team name or abbreviation…"
+              placeholder="Search team name or abbreviation..."
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
@@ -131,7 +156,7 @@ export default function PlayerSearch({ season = '2024-25' }) {
           </button>
         </div>
 
-        {/* Dropdown list */}
+        {/* Dropdown */}
         {open && filtered.length > 0 && (
           <div className="slide-down" style={{
             position: 'absolute', top: 'calc(100% + 6px)', left: 0,
@@ -140,9 +165,7 @@ export default function PlayerSearch({ season = '2024-25' }) {
             border: '1px solid var(--border-bright)',
             borderRadius: 10,
             boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
-            overflow: 'hidden',
-            maxHeight: 280,
-            overflowY: 'auto',
+            overflow: 'hidden', maxHeight: 280, overflowY: 'auto',
           }}>
             {filtered.map((t, i) => (
               <div
@@ -157,12 +180,17 @@ export default function PlayerSearch({ season = '2024-25' }) {
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
+                {getTeamLogoUrl(t.abbr) && (
+                  <img src={getTeamLogoUrl(t.abbr)} alt={t.abbr} width={22} height={22}
+                    style={{ objectFit: 'contain', flexShrink: 0 }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                )}
                 <span style={{
-                  background: 'rgba(0,212,255,0.1)',
-                  color: 'var(--cyan)', border: '1px solid rgba(0,212,255,0.2)',
+                  background: 'var(--bg-hover)', border: '1px solid var(--border-bright)',
                   borderRadius: 6, padding: '2px 7px',
                   fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
-                  flexShrink: 0, minWidth: 38, textAlign: 'center',
+                  color: 'var(--text-secondary)', flexShrink: 0, minWidth: 38, textAlign: 'center',
                 }}>
                   {t.abbr}
                 </span>
@@ -175,7 +203,7 @@ export default function PlayerSearch({ season = '2024-25' }) {
         )}
       </div>
 
-      {/* ── States ── */}
+      {/* States */}
       {loading && <div className="spinner" />}
 
       {error && (
@@ -183,46 +211,29 @@ export default function PlayerSearch({ season = '2024-25' }) {
           background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 10, padding: '12px 16px', color: '#f87171', fontSize: 13,
         }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
-      {/* ── Results ── */}
-      {!loading && sorted.length > 0 && (
-        <div>
-          {/* Result header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>
-              {teamLabel}
-            </h3>
-            <span style={{
-              background: 'rgba(0,212,255,0.08)', color: 'var(--cyan)',
-              border: '1px solid rgba(0,212,255,0.18)',
-              borderRadius: 20, padding: '3px 11px', fontSize: 12, fontWeight: 700,
-            }}>
-              {sorted.length} players
-            </span>
-          </div>
-
-          {/* Player cards grid — powered by DisplayCards */}
-          <DisplayCards
-            players={sorted}
-            variant="grid"
-            showRank={true}
-            showTeam={false}
-            stats={['pts', 'reb', 'ast']}
-          />
-        </div>
+      {/* Dashboard */}
+      {hasDashboard && (
+        <TeamDashboard
+          teamAbbr={teamAbbr}
+          teamName={teamName}
+          dashData={dashData}
+          players={players}
+          schedule={schedule}
+          schedLoading={schedLoading}
+        />
       )}
 
-      {/* ── Empty state ── */}
-      {!loading && !error && sorted.length === 0 && (
+      {/* Empty state */}
+      {!loading && !error && !dashData && (
         <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🏀</div>
           <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
             No team selected
           </p>
-          <p style={{ fontSize: 13 }}>Use the search above to explore any NBA roster</p>
+          <p style={{ fontSize: 13 }}>Use the search above to explore any NBA team</p>
         </div>
       )}
     </div>

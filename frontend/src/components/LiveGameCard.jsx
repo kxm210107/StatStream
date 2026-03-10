@@ -1,7 +1,8 @@
 // frontend/src/components/LiveGameCard.jsx
 import { useState, useEffect } from 'react';
 import WinProbabilityBar from './WinProbabilityBar';
-import { getTeamLogoUrl } from '../utils/teamLogos';
+import WinProbabilityChart from './WinProbabilityChart';
+import { getTeamLogoUrl, getTeamColor } from '../utils/teamLogos';
 
 const PERIOD_LABEL = { 1: '1ST', 2: '2ND', 3: '3RD', 4: '4TH' };
 
@@ -110,7 +111,7 @@ function TipoffCell({ timeStr }) {
   );
 }
 
-export default function LiveGameCard({ game, selected, onClick }) {
+export default function LiveGameCard({ game, selected, onClick, history = [] }) {
   const { home_team: home, away_team: away } = game;
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
@@ -227,6 +228,19 @@ export default function LiveGameCard({ game, selected, onClick }) {
             awayProb={away.win_probability}
             homeAbbr={home.abbr}
             awayAbbr={away.abbr}
+          />
+        </div>
+      )}
+
+      {/* Win probability chart — shown when live game is selected */}
+      {selected && isLive && (
+        <div style={{ marginTop: 20 }}>
+          <WinProbabilityChart
+            history={history}
+            homeAbbr={home.abbr}
+            awayAbbr={away.abbr}
+            homeColor={getTeamColor(home.abbr)}
+            awayColor={getTeamColor(away.abbr)}
           />
         </div>
       )}

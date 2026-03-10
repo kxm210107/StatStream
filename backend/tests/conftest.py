@@ -52,6 +52,9 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
+from routers.account import get_db as account_get_db
+app.dependency_overrides[account_get_db] = override_get_db
+
 
 # ── Seed data ──────────────────────────────────────────────────────────────────
 

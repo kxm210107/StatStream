@@ -5,9 +5,8 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError, ExpiredSignatureError
 
-_bearer = HTTPBearer()
+_bearer = HTTPBearer(auto_error=False)
 
-JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 JWT_ALGORITHM = "HS256"
 JWT_AUDIENCE = "authenticated"
 
@@ -20,10 +19,11 @@ class AuthIdentity:
 
 def _verify_token(token: str) -> AuthIdentity:
     """Verify a Supabase JWT string and return the auth identity. Used directly in tests."""
+    jwt_secret = os.environ.get("SUPABASE_JWT_SECRET", "")
     try:
         payload = jwt.decode(
             token,
-            JWT_SECRET,
+            jwt_secret,
             algorithms=[JWT_ALGORITHM],
             audience=JWT_AUDIENCE,
             options={"verify_aud": True},
@@ -43,4 +43,6 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> AuthIdentity:
     """FastAPI dependency — extracts Bearer token and verifies it."""
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")
     return _verify_token(credentials.credentials)

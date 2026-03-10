@@ -26,6 +26,7 @@ import leagueschedule_compat as _lsched
 import game_tracker
 import play_by_play
 from database import engine, SessionLocal
+from routers.account import router as account_router
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -76,6 +77,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+app.include_router(account_router)
 
 
 # ==========================================

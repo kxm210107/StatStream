@@ -5,6 +5,16 @@ from tests.conftest import TestSessionLocal
 import models
 
 
+@pytest.fixture(autouse=True)
+def clean_account_rows():
+    yield
+    db = TestSessionLocal()
+    db.query(models.UserProfile).delete()
+    db.query(models.UserSettings).delete()
+    db.commit()
+    db.close()
+
+
 def test_user_profile_create():
     db = TestSessionLocal()
     profile = models.UserProfile(
@@ -17,6 +27,7 @@ def test_user_profile_create():
     db.refresh(profile)
     assert profile.id is not None
     assert profile.auth_user_id == "supabase-uid-001"
+    assert profile.created_at is not None
     db.close()
 
 
@@ -42,4 +53,5 @@ def test_user_settings_create():
     db.commit()
     db.refresh(settings)
     assert settings.id is not None
+    assert settings.settings_json == {}
     db.close()

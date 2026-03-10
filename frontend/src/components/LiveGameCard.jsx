@@ -158,7 +158,7 @@ function ScoreFlash({ plays, teamAbbr, side }) {
   );
 }
 
-export default function LiveGameCard({ game, selected, onClick, history = [], new_scoring_plays = [] }) {
+export default function LiveGameCard({ game, selected, onClick, prob_history = [], new_scoring_plays = [] }) {
   const { home_team: home, away_team: away } = game;
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
@@ -286,7 +286,7 @@ export default function LiveGameCard({ game, selected, onClick, history = [], ne
       {selected && isLive && (
         <div style={{ marginTop: 20 }}>
           <WinProbabilityChart
-            history={history}
+            prob_history={prob_history}
             homeAbbr={home.abbr}
             awayAbbr={away.abbr}
             homeColor={getTeamColor(home.abbr)}

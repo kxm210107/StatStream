@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import LiveGameCard from './LiveGameCard';
 import { getLiveGamesWithProbabilities, getUpcomingGames } from '../api';
 
-const POLL_INTERVAL_MS = 25_000;
+const POLL_INTERVAL_MS = 5_000;
 
 export default function LiveWinProbability() {
   const [games,          setGames         ] = useState([]);
@@ -14,9 +14,7 @@ export default function LiveWinProbability() {
   const [upcomingError,  setUpcomingError  ] = useState(null);
   const [lastUpdated,    setLastUpdated   ] = useState(null);
   const [selectedId,     setSelectedId    ] = useState(null);
-  const [historyVersion, setHistoryVersion] = useState(0);
   const intervalRef = useRef(null);
-  const historyRef  = useRef({});
 
   const fetchGames = async () => {
     try {
@@ -24,23 +22,6 @@ export default function LiveWinProbability() {
       setGames(data);
       setLastUpdated(new Date());
       setError(null);
-      let updated = false;
-      data.forEach(game => {
-        if (game.status !== 'Upcoming' && game.home_team.win_probability != null) {
-          if (!historyRef.current[game.game_id]) {
-            historyRef.current[game.game_id] = [];
-          }
-          historyRef.current[game.game_id].push({
-            time: Date.now(),
-            homeProb: game.home_team.win_probability,
-          });
-          if (historyRef.current[game.game_id].length > 200) {
-            historyRef.current[game.game_id] = historyRef.current[game.game_id].slice(-200);
-          }
-          updated = true;
-        }
-      });
-      if (updated) setHistoryVersion(v => v + 1);
     } catch (e) {
       setError('Could not fetch live game data. Retrying…');
     } finally {
@@ -81,7 +62,7 @@ export default function LiveWinProbability() {
           </h2>
           {lastUpdated && (
             <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4, letterSpacing: '0.06em' }}>
-              Updated {lastUpdated.toLocaleTimeString()} · refreshes every 25s
+              Updated {lastUpdated.toLocaleTimeString()} · refreshes every 5s
             </p>
           )}
         </div>
@@ -131,7 +112,8 @@ export default function LiveWinProbability() {
               game={game}
               selected={selectedId === game.game_id}
               onClick={() => setSelectedId(id => id === game.game_id ? null : game.game_id)}
-              history={historyRef.current[game.game_id] ?? []}
+              prob_history={game.prob_history ?? []}
+              new_scoring_plays={game.new_scoring_plays ?? []}
             />
           ))}
         </div>

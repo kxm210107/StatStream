@@ -9,3 +9,4 @@ nba_api
 scikit-learn
 joblib
 numpy
+python-jose[cryptography]

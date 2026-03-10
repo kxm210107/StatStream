@@ -65,8 +65,8 @@ export async function fetchTeamDashboard(team, season = '2024-25') {
   return res.json();
 }
 
-export async function fetchTeamSchedule(team) {
-  const res = await fetch(`${BASE_URL}/teams/${team}/schedule`);
+export async function fetchTeamSchedule(team, season = '2024-25') {
+  const res = await fetch(`${BASE_URL}/teams/${team}/schedule?season=${season}`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -94,4 +94,42 @@ export async function getTeamLineups(teamAbbr, { season = '2025-26', minMinutes 
   const res = await fetch(`${BASE_URL}/teams/${teamAbbr}/lineups?${params}`);
   if (!res.ok) throw new Error(`Failed to fetch lineups for ${teamAbbr}`);
   return res.json();
+}
+
+// ── Account API ────────────────────────────────────────────────────────────
+
+function authHeaders(token) {
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+}
+
+export async function getAccountProfile(token) {
+  const resp = await fetch(`${BASE_URL}/account/me`, { headers: authHeaders(token) });
+  if (!resp.ok) throw new Error('Failed to fetch profile');
+  return resp.json();
+}
+
+export async function updateFavoriteTeam(token, favoriteTeamAbbr) {
+  const resp = await fetch(`${BASE_URL}/account/favorite-team`, {
+    method:  'PATCH',
+    headers: authHeaders(token),
+    body:    JSON.stringify({ favorite_team_abbr: favoriteTeamAbbr }),
+  });
+  if (!resp.ok) throw new Error('Failed to update favorite team');
+  return resp.json();
+}
+
+export async function getAccountSettings(token) {
+  const resp = await fetch(`${BASE_URL}/account/settings`, { headers: authHeaders(token) });
+  if (!resp.ok) throw new Error('Failed to fetch settings');
+  return resp.json();
+}
+
+export async function updateAccountSettings(token, payload) {
+  const resp = await fetch(`${BASE_URL}/account/settings`, {
+    method:  'PATCH',
+    headers: authHeaders(token),
+    body:    JSON.stringify(payload),
+  });
+  if (!resp.ok) throw new Error('Failed to update settings');
+  return resp.json();
 }

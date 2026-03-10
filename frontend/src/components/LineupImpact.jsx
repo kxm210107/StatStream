@@ -74,29 +74,39 @@ export default function LineupImpact({ season = '2025-26' }) {
 
         {/* Min minutes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-            Min Minutes
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Min Minutes Together
+            </label>
+            <span style={{
+              fontSize: 13, fontWeight: 700,
+              color: 'var(--accent)',
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 5,
+              padding: '1px 7px',
+            }}>
+              {minMinutes}+
+            </span>
+          </div>
           <input
-            type="number"
+            type="range"
             min={0}
-            max={500}
-            step={10}
+            max={200}
+            step={5}
             value={minMinutes}
             onChange={e => setMinMinutes(Number(e.target.value))}
-            style={{
-              width: 90,
-              background: 'rgba(255,255,255,0.05)',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-light)',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 15,
-              fontFamily: 'inherit',
-              colorScheme: 'dark',
-              outline: 'none',
-            }}
+            style={{ width: 260, height: 6, accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 260, lineHeight: 1.5 }}>
+            {minMinutes === 0
+              ? 'Showing all lineups — includes small samples'
+              : minMinutes < 20
+              ? 'Low threshold — may include noisy stats'
+              : minMinutes < 60
+              ? 'Good balance of sample size vs. variety'
+              : 'High threshold — only proven rotations'}
+          </span>
         </div>
 
         {/* Season badge */}

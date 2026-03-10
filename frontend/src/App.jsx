@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutGrid, Trophy, Search, Zap, Award, Activity, BarChart2 } from 'lucide-react';
+import { LayoutGrid, Trophy, Search, Zap, Award, Activity, BarChart2, User } from 'lucide-react';
 import PlayerTable            from './components/PlayerTable';
 import TopScorers             from './components/TopScorers';
 import PlayerSearch           from './components/PlayerSearch';
@@ -9,8 +9,11 @@ import PlayoffBracket         from './components/PlayoffBracket';
 import { TubelightNavbar }    from './components/ui/TubelightNavbar';
 import LiveWinProbability from './components/LiveWinProbability';
 import LineupImpact from './components/LineupImpact';
+import Account from './components/Account';
+import AuthGate from './components/AuthGate';
 import { fetchSeasons }       from './api';
 import logoSrc                from './assets/logo.png';
+import { useAuth } from './context/AuthContext';
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 // Icons are pre-rendered elements; TubelightNavbar renders them as-is.
@@ -22,12 +25,20 @@ const TABS = [
   { id: 'Top Scorers',    label: 'Top Scorers',     icon: <Trophy     size={16} strokeWidth={2.5} /> },
   { id: 'Team Comparer',  label: 'Team Comparer',   icon: <Zap        size={16} strokeWidth={2.5} /> },
   { id: 'Playoffs',       label: 'Playoffs',        icon: <Award      size={16} strokeWidth={2.5} /> },
+  { id: 'Account',        label: 'Account',         icon: <User       size={16} strokeWidth={2.5} /> },
 ];
 
 export default function App() {
-  const [activeTab,    setActiveTab   ] = useState('Team Search');
-  const [seasons,      setSeasons     ] = useState([]);
-  const [activeSeason, setActiveSeason] = useState(null);
+  const [activeTab,         setActiveTab        ] = useState('Team Search');
+  const [seasons,           setSeasons          ] = useState([]);
+  const [activeSeason,      setActiveSeason     ] = useState(null);
+  const [liveSelectedGameId, setLiveSelectedGameId] = useState(null);
+  const { favoriteTeam, setFavoriteTeam } = useAuth();
+
+  function goLive(gameId) {
+    setLiveSelectedGameId(gameId);
+    setActiveTab('Live');
+  }
 
   useEffect(() => {
     fetchSeasons()
@@ -156,11 +167,27 @@ export default function App() {
           {!activeSeason && <div className="spinner" />}
           {activeSeason && activeTab === 'Roster'        && <PlayerTable      season={activeSeason} />}
           {activeSeason && activeTab === 'Top Scorers'   && <TopScorers       season={activeSeason} />}
-          {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} />}
-          {activeSeason && activeTab === 'Team Comparer' && <TeamComparer     season={activeSeason} />}
-          {activeTab === 'Live'    && <LiveWinProbability />}
+          {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} onGoLive={goLive} />}
+          {activeSeason && activeTab === 'Team Comparer' && (
+            <AuthGate>
+              <TeamComparer season={activeSeason} />
+            </AuthGate>
+          )}
+          {activeTab === 'Live'    && <LiveWinProbability initialSelectedGameId={liveSelectedGameId} />}
           {activeSeason && activeTab === 'Lineups'   && <LineupImpact    season={activeSeason} />}
-          {activeSeason && activeTab === 'Playoffs'  && <PlayoffSimulator season={activeSeason} />}
+          {activeSeason && activeTab === 'Playoffs'  && (
+            <AuthGate>
+              <PlayoffSimulator season={activeSeason} />
+            </AuthGate>
+          )}
+          {activeTab === 'Account' && (
+            <Account
+              onOpenMyTeam={() => {
+                setActiveTab('Team Search');
+              }}
+              onFavoriteTeamChanged={setFavoriteTeam}
+            />
+          )}
         </div>
       </main>
 

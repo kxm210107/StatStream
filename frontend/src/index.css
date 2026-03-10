@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -5,24 +7,49 @@
 }
 
 :root {
-  --bg-primary:    #05080F;
-  --bg-secondary:  #0B1020;
-  --bg-card:       #0F1829;
-  --bg-card-2:     #141E30;
-  --bg-hover:      #172033;
-  --border:        #1C2A40;
-  --border-light:  #263A55;
-  --border-bright: #2E4A6A;
-  --text-primary:  #F0F6FF;
-  --text-secondary:#8BA8C8;
-  --text-muted:    #5A7A9A;
-  --cyan:          #00D4FF;
-  --purple:        #7C3AED;
-  --green:         #10b981;
-  --orange:        #f59e0b;
-  --red:           #ef4444;
+  /* ── Surfaces ── */
+  --bg-primary:    #000000;
+  --bg-secondary:  #080B12;
+  --bg-card:       #0A0D16;
+  --bg-card-2:     #0E1220;
+  --bg-hover:      #141824;
 
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ── Borders ── */
+  --border:        #0F1520;
+  --border-light:  #162030;
+  --border-bright: #1E2E45;
+
+  /* ── Text ── */
+  --text-primary:   #F0F4FB;
+  --text-secondary: #6B82A0;
+  --text-muted:     #344D68;
+
+  /* ── Accent ── */
+  --accent:        #FFFFFF;
+  --accent-dim:    rgba(255, 255, 255, 0.10);
+  --accent-bright: #FFFFFF;
+  --accent-amber:      #F59E0B;
+  --accent-amber-dim:  rgba(245, 158, 11, 0.12);
+
+  /* ── Errors ── */
+  --red:           #EF4444;
+
+  /* ── Vibrant stat colors (PTS / REB / AST column values) ── */
+  --cyan:          #22D3EE;
+  --green:         #4ADE80;
+  --orange:        #F97316;
+
+  /* ── Stat hierarchy — bold broadcast tones ── */
+  --stat-pts:      #22D3EE;
+  --stat-reb:      #4ADE80;
+  --stat-ast:      #F97316;
+
+  /* ── Font stacks ── */
+  --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
@@ -33,15 +60,28 @@ html, #root {
 }
 
 body {
-  background-color: var(--bg-primary);
+  background: #000000;
   background-image:
-    radial-gradient(ellipse 70% 55% at 5% 0%,   rgba(124, 58, 237, 0.13) 0%, transparent 65%),
-    radial-gradient(ellipse 55% 45% at 95% 100%, rgba(0, 212, 255, 0.09) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 30% at 50% 50%,  rgba(0, 30, 60, 0.4)    0%, transparent 70%);
+    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(59,130,246,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 20% at 80% 0%, rgba(245,158,11,0.04) 0%, transparent 50%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 60px,
+      rgba(59,130,246,0.015) 60px,
+      rgba(59,130,246,0.015) 61px
+    );
   background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;
+}
+
+/* ── Monospace stat numbers ── */
+.stat-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 /* ── Scrollbar ── */
@@ -68,10 +108,9 @@ body {
 }
 .ss-input::placeholder { color: var(--text-muted); }
 .ss-input:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
-/* Override browser autofill white flash */
 .ss-input:-webkit-autofill,
 .ss-input:-webkit-autofill:hover,
 .ss-input:-webkit-autofill:focus {
@@ -82,8 +121,8 @@ body {
 
 /* ── Button ── */
 .ss-btn {
-  background: linear-gradient(135deg, #00C4EE, #0090BB);
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
   border-radius: 8px;
   padding: 10px 22px;
@@ -97,13 +136,14 @@ body {
 }
 .ss-btn:hover  { opacity: 0.88; }
 .ss-btn:active { transform: scale(0.97); }
+.ss-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Loading spinner ── */
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner {
   width: 32px; height: 32px;
   border: 3px solid var(--border-light);
-  border-top-color: var(--cyan);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
   margin: 48px auto;
@@ -122,3 +162,30 @@ body {
   to   { opacity: 1; transform: none; }
 }
 .slide-down { animation: slideDown 0.18s ease both; }
+
+/* ── Shimmer / skeleton loading ── */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+/* ── Score flash animation ── */
+@keyframes scoreFloat {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-48px); }
+}
+
+/* ── Card glow utility ── */
+.card-glow {
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.08) inset, 0 24px 64px rgba(0,0,0,0.6);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-glow:hover {
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.25) inset, 0 0 32px rgba(59,130,246,0.1), 0 24px 64px rgba(0,0,0,0.6);
+}

@@ -111,7 +111,54 @@ function TipoffCell({ timeStr }) {
   );
 }
 
-export default function LiveGameCard({ game, selected, onClick, history = [] }) {
+function ScoreFlash({ plays, teamAbbr, side }) {
+  const [flashes, setFlashes] = useState([]);
+
+  useEffect(() => {
+    const mine = (plays || []).filter(p => p.team_abbr === teamAbbr);
+    if (mine.length === 0) return;
+    const newFlashes = mine.map((p, i) => ({
+      id: `${p.action_number}-${i}`,
+      points: p.points,
+    }));
+    setFlashes(prev => [...prev, ...newFlashes]);
+    const timer = setTimeout(() => {
+      setFlashes(prev => prev.filter(f => !newFlashes.find(n => n.id === f.id)));
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [plays]);
+
+  if (flashes.length === 0) return null;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      [side === 'left' ? 'left' : 'right']: 20,
+      top: 0,
+      pointerEvents: 'none',
+      zIndex: 10,
+    }}>
+      {flashes.map(f => (
+        <span
+          key={f.id}
+          style={{
+            display: 'block',
+            fontFamily: 'var(--font-display)',
+            fontSize: 22,
+            fontWeight: 900,
+            color: '#4ADE80',
+            animation: 'scoreFloat 1.8s ease-out forwards',
+            letterSpacing: '0.05em',
+          }}
+        >
+          +{f.points}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export default function LiveGameCard({ game, selected, onClick, history = [], new_scoring_plays = [] }) {
   const { home_team: home, away_team: away } = game;
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
@@ -128,6 +175,7 @@ export default function LiveGameCard({ game, selected, onClick, history = [] }) 
         borderRadius: 12,
         padding: '22px 28px',
         cursor: isLive ? 'pointer' : 'default',
+        position: 'relative',
         transition: 'border-color 0.2s, background 0.2s',
         boxShadow: selected ? '0 0 0 1px rgba(34,211,238,0.15) inset' : 'none',
         width: '100%',
@@ -136,6 +184,7 @@ export default function LiveGameCard({ game, selected, onClick, history = [] }) 
     >
       {/* Main row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <ScoreFlash plays={new_scoring_plays} teamAbbr={away.abbr} side="left" />
 
         {/* Status badge */}
         <div style={{ minWidth: 72, flexShrink: 0 }}>
@@ -218,6 +267,7 @@ export default function LiveGameCard({ game, selected, onClick, history = [] }) 
           </div>
         </div>
 
+        <ScoreFlash plays={new_scoring_plays} teamAbbr={home.abbr} side="right" />
       </div>
 
       {/* Win probability bar — live and pregame */}

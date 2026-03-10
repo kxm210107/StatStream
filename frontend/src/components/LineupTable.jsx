@@ -23,7 +23,7 @@ function colorForRating(value) {
   return 'var(--text-secondary)';
 }
 
-export default function LineupTable({ lineups, sortBy, onSort }) {
+export default function LineupTable({ lineups, sortBy, sortDir = 'desc', onSort }) {
   if (!lineups || lineups.length === 0) {
     return (
       <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '32px 0', fontSize: 13 }}>
@@ -55,13 +55,13 @@ export default function LineupTable({ lineups, sortBy, onSort }) {
                 }}
                 onClick={() => col.sortable && onSort(col.key)}
               >
-                {col.label}{col.sortable && sortBy === col.key ? ' ▼' : ''}
+                {col.label}{col.sortable && sortBy === col.key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {lineups.map((lineup, i) => (
+          {(sortDir === 'asc' ? [...lineups].reverse() : lineups).map((lineup, i) => (
             <tr
               key={lineup.lineup_id}
               style={{

@@ -2,6 +2,7 @@
 """
 cd /Users/kevjumba/PycharmProjects/StatStream/backend
 @"""
+import asyncio
 import datetime
 import math
 import random
@@ -911,7 +912,8 @@ async def get_team_lineups(
     limit:       int   = 20,
 ):
     try:
-        data = lineup_impact.get_lineup_summaries(
+        data = await asyncio.to_thread(
+            lineup_impact.get_lineup_summaries,
             team_abbr=abbr,
             season=season,
             min_minutes=min_minutes,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LineupTable from './LineupTable';
 
 const TEAMS = [
@@ -8,21 +8,32 @@ const TEAMS = [
 ];
 
 export default function LineupImpact({ season = '2025-26' }) {
-  const [team,       setTeam      ] = useState('ATL');
-  const [minMinutes, setMinMinutes] = useState(20);
-  const [sortBy,     setSortBy    ] = useState('net_rating');
-  const [lineups,    setLineups   ] = useState([]);
-  const [loading,    setLoading   ] = useState(false);
-  const [error,      setError     ] = useState(null);
+  const [team,           setTeam          ] = useState('ATL');
+  const [minMinutes,     setMinMinutes    ] = useState(20);
+  const [apiMinMinutes,  setApiMinMinutes ] = useState(20);
+  const [sortBy,         setSortBy        ] = useState('net_rating');
+  const [sortDir,        setSortDir       ] = useState('desc');
+  const [lineups,        setLineups       ] = useState([]);
+  const [loading,        setLoading       ] = useState(false);
+  const [error,          setError         ] = useState(null);
+  const debounceRef = useRef(null);
+
+  // Debounce slider → only hit the API 400ms after the user stops dragging
+  function handleSlider(val) {
+    setMinMinutes(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setApiMinMinutes(val), 400);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
     fetch(`http://localhost:8000/teams/${team}/lineups?` + new URLSearchParams({
       season,
-      min_minutes: minMinutes,
+      min_minutes: apiMinMinutes,
       sort_by: sortBy,
       limit: 20,
     }), { signal: controller.signal })
@@ -30,17 +41,21 @@ export default function LineupImpact({ season = '2025-26' }) {
         if (!res.ok) throw new Error(`Failed to fetch lineups for ${team}`);
         return res.json();
       })
-      .then(data => setLineups(data.lineups))
-      .catch(err => {
-        if (err.name !== 'AbortError') setError(err.message);
-      })
-      .finally(() => setLoading(false));
+      .then(data => { if (!cancelled) setLineups(data.lineups); })
+      .catch(err => { if (!cancelled && err.name !== 'AbortError') setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    return () => controller.abort();
-  }, [team, season, minMinutes, sortBy]);
+    return () => { cancelled = true; controller.abort(); };
+  }, [team, season, apiMinMinutes, sortBy]);
 
   function handleSort(field) {
-    setSortBy(field);
+    if (field === sortBy) {
+      // Toggle direction on same column
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(field);
+      setSortDir('desc');
+    }
   }
 
   return (
@@ -95,7 +110,7 @@ export default function LineupImpact({ season = '2025-26' }) {
             max={200}
             step={5}
             value={minMinutes}
-            onChange={e => setMinMinutes(Number(e.target.value))}
+            onChange={e => handleSlider(Number(e.target.value))}
             style={{ width: 260, height: 6, accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
           <span style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 260, lineHeight: 1.5 }}>
@@ -146,7 +161,7 @@ export default function LineupImpact({ season = '2025-26' }) {
       )}
 
       {!loading && !error && (
-        <LineupTable lineups={lineups} sortBy={sortBy} onSort={handleSort} />
+        <LineupTable lineups={lineups} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
       )}
     </div>
   );

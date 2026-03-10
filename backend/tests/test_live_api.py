@@ -29,9 +29,14 @@ FAKE_GAMES = [
 def patch_live_games(monkeypatch):
     """Replace fetch_live_games with a deterministic fake."""
     import live_games
+    import play_by_play
+    import game_tracker
     monkeypatch.setattr(live_games, "fetch_live_games", lambda: FAKE_GAMES)
+    monkeypatch.setattr(play_by_play, "fetch_scoring_plays", lambda gid, since: ([], since))
+    game_tracker.clear_all()
     live_cache.clear()
     yield
+    game_tracker.clear_all()
     live_cache.clear()
 
 
@@ -91,3 +96,33 @@ class TestGetLiveProbabilities:
     def test_model_type_present(self, client):
         game = client.get("/games/live/probabilities").json()[0]
         assert "model_type" in game
+
+
+class TestLiveProbabilitiesNewFields:
+
+    def test_prob_history_present(self, client):
+        game = client.get("/games/live/probabilities").json()[0]
+        assert "prob_history" in game
+
+    def test_prob_history_is_list(self, client):
+        game = client.get("/games/live/probabilities").json()[0]
+        assert isinstance(game["prob_history"], list)
+
+    def test_new_scoring_plays_present(self, client):
+        game = client.get("/games/live/probabilities").json()[0]
+        assert "new_scoring_plays" in game
+
+    def test_new_scoring_plays_is_list(self, client):
+        game = client.get("/games/live/probabilities").json()[0]
+        assert isinstance(game["new_scoring_plays"], list)
+
+    def test_prob_history_accumulates_across_calls(self, client):
+        import live_cache, game_tracker
+        game_tracker.clear_all()
+        live_cache.clear()
+        client.get("/games/live/probabilities")
+        live_cache.clear()  # force second fetch
+        client.get("/games/live/probabilities")
+        live_cache.clear()
+        game = client.get("/games/live/probabilities").json()[0]
+        assert len(game["prob_history"]) >= 1

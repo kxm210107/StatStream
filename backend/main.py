@@ -19,6 +19,8 @@ import win_probability
 import live_cache
 import lineup_impact
 import leagueschedule_compat as _lsched
+import game_tracker
+import play_by_play
 from database import engine, SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
@@ -1055,6 +1057,7 @@ def get_live_probabilities():
 
     result = []
     for g in games:
+        game_id = g["game_id"]
         period = g["period"]
         clock  = g["clock"]
         is_upcoming = g["status"] == "Upcoming"
@@ -1063,13 +1066,33 @@ def get_live_probabilities():
             home_pct = _win_pct.get(g["home_team"]["abbr"], 0.5)
             away_pct = _win_pct.get(g["away_team"]["abbr"], 0.5)
             home_prob, away_prob = win_probability.pregame_predict(home_pct, away_pct)
+            prob_history = []
+            new_scoring_plays = []
         else:
             home_score = g["home_team"]["score"]
             away_score = g["away_team"]["score"]
             home_prob, away_prob = win_probability.predict(home_score, away_score, period, clock)
 
+            # Record probability snapshot
+            game_tracker.record_prob(game_id, period, clock, home_prob)
+
+            # Fetch new scoring plays (cached per game for 5s)
+            pbp_cache_key = f"pbp_{game_id}"
+            cached_pbp = live_cache.get(pbp_cache_key)
+            if cached_pbp is not None:
+                plays, max_num = cached_pbp
+            else:
+                plays, max_num = play_by_play.fetch_scoring_plays(
+                    game_id, game_tracker.get_last_action_number(game_id)
+                )
+                live_cache.set(pbp_cache_key, (plays, max_num), ttl=5)
+            game_tracker.add_scoring_plays(game_id, plays, max_num)
+
+            prob_history = game_tracker.get_prob_history(game_id)
+            new_scoring_plays = game_tracker.drain_new_plays(game_id)
+
         entry = {
-            "game_id": g["game_id"],
+            "game_id": game_id,
             "status":  g["status"],
             "period":  period,
             "clock":   clock,
@@ -1083,13 +1106,15 @@ def get_live_probabilities():
             },
             "last_updated": g["last_updated"],
             "model_type": "pregame_log5" if is_upcoming else "logistic",
+            "prob_history": prob_history,
+            "new_scoring_plays": new_scoring_plays,
         }
         if is_upcoming:
             entry["date"] = g.get("date", "")
             entry["time"] = g.get("time", "")
         result.append(entry)
 
-    live_cache.set("live_probabilities", result, ttl=20)
+    live_cache.set("live_probabilities", result, ttl=5)
     return result
 
 

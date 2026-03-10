@@ -16,6 +16,8 @@ def get_or_create_profile(db: Session, auth_user_id: str, email: str) -> models.
 
 def update_favorite_team(db: Session, auth_user_id: str, favorite_team_abbr: Optional[str]) -> models.UserProfile:
     profile = db.query(models.UserProfile).filter_by(auth_user_id=auth_user_id).first()
+    if profile is None:
+        raise ValueError(f"No profile found for auth_user_id={auth_user_id}")
     profile.favorite_team_abbr = favorite_team_abbr
     db.commit()
     db.refresh(profile)

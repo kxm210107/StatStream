@@ -5,7 +5,7 @@ import { getLiveGamesWithProbabilities, getUpcomingGames } from '../api';
 
 const POLL_INTERVAL_MS = 5_000;
 
-export default function LiveWinProbability() {
+export default function LiveWinProbability({ initialSelectedGameId = null, favoriteTeam = null }) {
   const [games,          setGames         ] = useState([]);
   const [upcoming,       setUpcoming      ] = useState([]);
   const [loading,        setLoading       ] = useState(true);
@@ -13,7 +13,7 @@ export default function LiveWinProbability() {
   const [error,          setError         ] = useState(null);
   const [upcomingError,  setUpcomingError  ] = useState(null);
   const [lastUpdated,    setLastUpdated   ] = useState(null);
-  const [selectedId,     setSelectedId    ] = useState(null);
+  const [selectedId,     setSelectedId    ] = useState(initialSelectedGameId);
   const intervalRef = useRef(null);
 
   const fetchGames = async () => {
@@ -106,16 +106,31 @@ export default function LiveWinProbability() {
       )}
       {!loading && games.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {games.map(game => (
-            <LiveGameCard
-              key={game.game_id}
-              game={game}
-              selected={selectedId === game.game_id}
-              onClick={() => setSelectedId(id => id === game.game_id ? null : game.game_id)}
-              prob_history={game.prob_history ?? []}
-              new_scoring_plays={game.new_scoring_plays ?? []}
-            />
-          ))}
+          {[...games].sort((a, b) => {
+            const aFav = favoriteTeam && (a.home_team.abbr === favoriteTeam || a.away_team.abbr === favoriteTeam);
+            const bFav = favoriteTeam && (b.home_team.abbr === favoriteTeam || b.away_team.abbr === favoriteTeam);
+            return (bFav ? 1 : 0) - (aFav ? 1 : 0);
+          }).map(game => {
+            const isFavorite = favoriteTeam && (
+              game.home_team.abbr === favoriteTeam || game.away_team.abbr === favoriteTeam
+            );
+            return (
+              <div key={game.game_id}>
+                {isFavorite && (
+                  <div style={{ marginBottom: 4, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: '#facc15' }}>
+                    <span title="Your team">★</span> YOUR TEAM
+                  </div>
+                )}
+                <LiveGameCard
+                  game={game}
+                  selected={selectedId === game.game_id}
+                  onClick={() => setSelectedId(id => id === game.game_id ? null : game.game_id)}
+                  prob_history={game.prob_history ?? []}
+                  new_scoring_plays={game.new_scoring_plays ?? []}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -254,7 +254,7 @@ function ScheduleRow({ game, teamAbbr, isLast }) {
   );
 }
 
-function UpcomingSchedule({ games, teamAbbr, loading }) {
+function UpcomingSchedule({ games, teamAbbr, loading, liveGame, onGoLive }) {
   return (
     <div style={{
       background: 'var(--bg-card-2)', border: '1px solid var(--border-light)',
@@ -268,6 +268,40 @@ function UpcomingSchedule({ games, teamAbbr, loading }) {
           <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Next {games.length} games</span>
         )}
       </div>
+
+      {/* Live game banner */}
+      {liveGame && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+          borderRadius: 8, padding: '10px 12px', marginBottom: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+              background: '#EF4444', boxShadow: '0 0 6px #EF4444',
+              animation: 'pulse 2s ease infinite', flexShrink: 0,
+            }} />
+            <TeamLogo abbr={teamAbbr} size={22} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>vs</span>
+            <TeamLogo abbr={liveGame.opponent} size={22} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', letterSpacing: '0.08em' }}>
+              LIVE NOW
+            </span>
+          </div>
+          <button
+            onClick={() => onGoLive?.(liveGame.game_id)}
+            style={{
+              background: '#EF4444', color: '#fff', border: 'none', borderRadius: 6,
+              padding: '5px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em',
+              cursor: 'pointer', textTransform: 'uppercase',
+            }}
+          >
+            Watch Live →
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', color: 'var(--text-muted)', fontSize: 12 }}>
           <div style={{
@@ -352,7 +386,7 @@ function RecentResults({ games }) {
 
 // ── Main exported component ────────────────────────────────────────────────────
 
-export default function TeamDashboard({ teamAbbr, teamName, dashData, players, schedule = [], schedLoading = false }) {
+export default function TeamDashboard({ teamAbbr, teamName, dashData, players, schedule = [], schedLoading = false, liveGame = null, onGoLive }) {
   const { stats, game_log } = dashData;
 
   return (
@@ -415,7 +449,7 @@ export default function TeamDashboard({ teamAbbr, teamName, dashData, players, s
 
       {/* Schedule + Results (two-column) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <UpcomingSchedule games={schedule} teamAbbr={teamAbbr} loading={schedLoading} />
+        <UpcomingSchedule games={schedule} teamAbbr={teamAbbr} loading={schedLoading} liveGame={liveGame} onGoLive={onGoLive} />
         <RecentResults games={game_log} />
       </div>
     </div>

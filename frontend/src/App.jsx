@@ -167,13 +167,13 @@ export default function App() {
           {!activeSeason && <div className="spinner" />}
           {activeSeason && activeTab === 'Roster'        && <PlayerTable      season={activeSeason} />}
           {activeSeason && activeTab === 'Top Scorers'   && <TopScorers       season={activeSeason} />}
-          {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} onGoLive={goLive} />}
+          {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} onGoLive={goLive} favoriteTeam={favoriteTeam} />}
           {activeSeason && activeTab === 'Team Comparer' && (
             <AuthGate>
               <TeamComparer season={activeSeason} />
             </AuthGate>
           )}
-          {activeTab === 'Live'    && <LiveWinProbability initialSelectedGameId={liveSelectedGameId} />}
+          {activeTab === 'Live'    && <LiveWinProbability initialSelectedGameId={liveSelectedGameId} favoriteTeam={favoriteTeam} />}
           {activeSeason && activeTab === 'Lineups'   && <LineupImpact    season={activeSeason} />}
           {activeSeason && activeTab === 'Playoffs'  && (
             <AuthGate>

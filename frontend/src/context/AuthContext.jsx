@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { getAccountProfile } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,11 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
       setUser(data.session?.user ?? null);
+      if (data.session?.access_token) {
+        getAccountProfile(data.session.access_token)
+          .then(p => setFavoriteTeam(p.favorite_team_abbr ?? null))
+          .catch(() => {});
+      }
     });
 
     // Listen for auth state changes (login, logout, token refresh)
@@ -23,6 +29,12 @@ export function AuthProvider({ children }) {
       if (event === 'SIGNED_OUT' || !newSession) {
         setFavoriteTeam(null);
         return;
+      }
+
+      if (newSession?.access_token) {
+        getAccountProfile(newSession.access_token)
+          .then(p => setFavoriteTeam(p.favorite_team_abbr ?? null))
+          .catch(() => setFavoriteTeam(null));
       }
     });
 

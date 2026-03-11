@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { fetchPlayersByTeam, fetchTeamDashboard, fetchTeamSchedule } from '../api';
+import { fetchPlayersByTeam, fetchTeamDashboard, fetchTeamSchedule, getLiveGamesWithProbabilities } from '../api';
 import TeamDashboard from './TeamDashboard';
 import { getTeamLogoUrl } from '../utils/teamLogos';
 
@@ -36,7 +36,7 @@ const NBA_TEAMS = [
   { abbr: 'WAS', name: 'Washington Wizards'       },
 ];
 
-export default function PlayerSearch({ season = '2024-25' }) {
+export default function PlayerSearch({ season = '2024-25', onGoLive, favoriteTeam }) {
   const [query,     setQuery    ] = useState('');
   const [open,      setOpen     ] = useState(false);
   const [loading,   setLoading  ] = useState(false);
@@ -46,6 +46,7 @@ export default function PlayerSearch({ season = '2024-25' }) {
   const [players,   setPlayers  ] = useState([]);
   const [dashData,  setDashData ] = useState(null);
   const [schedule,  setSchedule ] = useState([]);
+  const [liveGame,  setLiveGame ] = useState(null); // {game_id, opponent, isHome} if team is playing now
   const [schedLoading, setSchedLoading] = useState(false);
 
   const wrapRef = useRef(null);
@@ -63,11 +64,20 @@ export default function PlayerSearch({ season = '2024-25' }) {
     setPlayers([]);
     setDashData(null);
     setSchedule([]);
+    setLiveGame(null);
     setError(null);
     setTeamAbbr('');
     setTeamName('');
     setQuery('');
   }, [season]);
+
+  // Preselect favorite team on mount or when favoriteTeam arrives after login
+  useEffect(() => {
+    if (favoriteTeam && !teamAbbr) {
+      const fav = NBA_TEAMS.find(t => t.abbr === favoriteTeam);
+      if (fav) search(fav.abbr, fav.name);
+    }
+  }, [favoriteTeam]);
 
   const filtered = NBA_TEAMS.filter(t =>
     t.abbr.includes(query.toUpperCase()) ||
@@ -91,10 +101,30 @@ export default function PlayerSearch({ season = '2024-25' }) {
       ]);
       setPlayers(rosterData);
       setDashData(dash);
+
+      // Check for a live game involving this team
+      getLiveGamesWithProbabilities()
+        .then(liveGames => {
+          const match = liveGames.find(g =>
+            g.status !== 'Upcoming' &&
+            (g.home_team.abbr === abbr || g.away_team.abbr === abbr)
+          );
+          if (match) {
+            const isHome = match.home_team.abbr === abbr;
+            setLiveGame({
+              game_id:  match.game_id,
+              opponent: isHome ? match.away_team.abbr : match.home_team.abbr,
+              isHome,
+            });
+          }
+        })
+        .catch(() => {});
+
       // Fetch schedule separately — it's slow (ScoreboardV2 loops up to 14 days)
       setSchedLoading(true);
-      fetchTeamSchedule(abbr)
-        .then(sched => setSchedule(sched))
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+      fetchTeamSchedule(abbr, season)
+        .then(sched => setSchedule(sched.filter(g => g.date >= today)))
         .catch(() => {})
         .finally(() => setSchedLoading(false));
     } catch {
@@ -196,6 +226,7 @@ export default function PlayerSearch({ season = '2024-25' }) {
                 </span>
                 <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 14 }}>
                   {t.name}
+                  {t.abbr === favoriteTeam && <span title="Favorite team" style={{ color: '#facc15' }}> ★</span>}
                 </span>
               </div>
             ))}
@@ -224,6 +255,8 @@ export default function PlayerSearch({ season = '2024-25' }) {
           players={players}
           schedule={schedule}
           schedLoading={schedLoading}
+          liveGame={liveGame}
+          onGoLive={onGoLive}
         />
       )}
 

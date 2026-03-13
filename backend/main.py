@@ -1085,6 +1085,7 @@ def get_live_probabilities():
         period = g["period"]
         clock  = g["clock"]
         is_upcoming = g["status"] == "Upcoming"
+        is_final    = g["status"] == "Final"
         box_score = None
 
         if is_upcoming:
@@ -1093,6 +1094,14 @@ def get_live_probabilities():
             home_prob, away_prob = win_probability.pregame_predict(home_pct, away_pct)
             prob_history = []
             new_scoring_plays = []
+        elif is_final:
+            home_score = g["home_team"]["score"]
+            away_score = g["away_team"]["score"]
+            home_prob = 1.0 if home_score > away_score else 0.0
+            away_prob = 1.0 - home_prob
+            prob_history = game_tracker.get_prob_history(game_id)
+            new_scoring_plays = []
+            box_score = boxscore_module.fetch_live_boxscore(game_id)
         else:
             home_score = g["home_team"]["score"]
             away_score = g["away_team"]["score"]
@@ -1148,7 +1157,7 @@ def get_live_probabilities():
             "model_type": "pregame_log5" if is_upcoming else "logistic",
             "prob_history": prob_history,
             "new_scoring_plays": new_scoring_plays,
-            "box_score": None if is_upcoming else box_score,
+            "box_score": box_score if (is_final or not is_upcoming) else None,
         }
         if is_upcoming:
             entry["date"] = g.get("date", "")

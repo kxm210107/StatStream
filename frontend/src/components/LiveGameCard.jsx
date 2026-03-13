@@ -164,6 +164,7 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
   const { home_team: home, away_team: away } = game;
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const isFinal    = game.status === 'Final';
   const isLive     = game.status !== 'Upcoming';
   const isToday    = game.date === todayStr;
   const isTomorrow = !isLive && game.date === tomorrowStr;
@@ -195,7 +196,12 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
 
         {/* Status badge */}
         <div style={{ minWidth: 72, flexShrink: 0 }}>
-          {isLive ? (
+          {isFinal ? (
+            <span style={{
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.15em',
+              color: 'var(--text-muted)', textTransform: 'uppercase',
+            }}>Final</span>
+          ) : isLive ? (
             <span style={{
               fontSize: 11, fontWeight: 800, letterSpacing: '0.15em',
               color: '#4ADE80', textTransform: 'uppercase',

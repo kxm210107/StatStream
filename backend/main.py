@@ -1085,6 +1085,7 @@ def get_live_probabilities():
         period = g["period"]
         clock  = g["clock"]
         is_upcoming = g["status"] == "Upcoming"
+        box_score = None
 
         if is_upcoming:
             home_pct = _win_pct.get(g["home_team"]["abbr"], 0.5)

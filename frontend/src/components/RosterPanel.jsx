@@ -38,7 +38,7 @@ function TeamTable({ players, abbr }) {
   const rows = players.map(playerRow);
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ minWidth: 0 }}>
       <div style={{
         fontSize: 12, fontWeight: 700, letterSpacing: '0.12em',
         textTransform: 'uppercase', color: color || 'var(--text-primary)',
@@ -108,9 +108,13 @@ export default function RosterPanel({ homePlayers, awayPlayers, homeAbbr, awayAb
   }
 
   return (
-    <div>
-      <TeamTable players={awayPlayers} abbr={awayAbbr} />
-      <TeamTable players={homePlayers} abbr={homeAbbr} />
+    <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <TeamTable players={awayPlayers} abbr={awayAbbr} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <TeamTable players={homePlayers} abbr={homeAbbr} />
+      </div>
     </div>
   );
 }

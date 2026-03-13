@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import WinProbabilityBar from './WinProbabilityBar';
 import WinProbabilityChart from './WinProbabilityChart';
 import { getTeamLogoUrl, getTeamColor } from '../utils/teamLogos';
+import TeamStatsPanel from './TeamStatsPanel';
+import RosterPanel from './RosterPanel';
 
 const PERIOD_LABEL = { 1: '1ST', 2: '2ND', 3: '3RD', 4: '4TH' };
 
@@ -158,13 +160,14 @@ function ScoreFlash({ plays, teamAbbr, side }) {
   );
 }
 
-export default function LiveGameCard({ game, selected, onClick, prob_history = [], new_scoring_plays = [] }) {
+export default function LiveGameCard({ game, selected, onClick, prob_history = [], new_scoring_plays = [], box_score = null }) {
   const { home_team: home, away_team: away } = game;
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const tomorrowStr = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const isLive     = game.status !== 'Upcoming';
   const isToday    = game.date === todayStr;
   const isTomorrow = !isLive && game.date === tomorrowStr;
+  const [activeTab, setActiveTab] = useState('probability');
 
   return (
     <div
@@ -282,16 +285,68 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
         </div>
       )}
 
-      {/* Win probability chart — shown when live game is selected */}
+      {/* Expanded panel — tabs shown when live game is selected */}
       {selected && isLive && (
         <div style={{ marginTop: 20 }}>
-          <WinProbabilityChart
-            prob_history={prob_history}
-            homeAbbr={home.abbr}
-            awayAbbr={away.abbr}
-            homeColor={getTeamColor(home.abbr)}
-            awayColor={getTeamColor(away.abbr)}
-          />
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex', gap: 4, marginBottom: 16,
+            borderBottom: '1px solid var(--border-light)', paddingBottom: 0,
+          }}>
+            {[
+              { id: 'probability', label: 'Win Probability' },
+              ...(box_score ? [
+                { id: 'team',   label: 'Team Stats' },
+                { id: 'roster', label: 'Roster'     },
+              ] : []),
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={e => { e.stopPropagation(); setActiveTab(tab.id); }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '8px 14px',
+                  fontSize: 12, fontWeight: activeTab === tab.id ? 700 : 400,
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: activeTab === tab.id ? 'var(--cyan)' : 'var(--text-muted)',
+                  borderBottom: activeTab === tab.id
+                    ? '2px solid var(--cyan)'
+                    : '2px solid transparent',
+                  marginBottom: -1,
+                  transition: 'color 0.15s',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          {activeTab === 'probability' && (
+            <WinProbabilityChart
+              prob_history={prob_history}
+              homeAbbr={home.abbr}
+              awayAbbr={away.abbr}
+              homeColor={getTeamColor(home.abbr)}
+              awayColor={getTeamColor(away.abbr)}
+            />
+          )}
+          {activeTab === 'team' && box_score && (
+            <TeamStatsPanel
+              homeStats={box_score.home?.team_stats}
+              awayStats={box_score.away?.team_stats}
+              homeAbbr={home.abbr}
+              awayAbbr={away.abbr}
+            />
+          )}
+          {activeTab === 'roster' && box_score && (
+            <RosterPanel
+              homePlayers={box_score.home?.players}
+              awayPlayers={box_score.away?.players}
+              homeAbbr={home.abbr}
+              awayAbbr={away.abbr}
+            />
+          )}
         </div>
       )}
     </div>

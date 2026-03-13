@@ -127,6 +127,7 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
                   onClick={() => setSelectedId(id => id === game.game_id ? null : game.game_id)}
                   prob_history={game.prob_history ?? []}
                   new_scoring_plays={game.new_scoring_plays ?? []}
+                  box_score={game.box_score ?? null}
                 />
               </div>
             );

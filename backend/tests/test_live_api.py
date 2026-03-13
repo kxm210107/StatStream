@@ -127,3 +127,50 @@ class TestLiveProbabilitiesNewFields:
         live_cache.clear()
         game = client.get("/games/live/probabilities").json()[0]
         assert len(game["prob_history"]) >= 1
+
+
+class TestLiveProbabilitiesBoxScore:
+
+    def test_box_score_field_present(self, client, monkeypatch):
+        import boxscore as bs_module
+        monkeypatch.setattr(bs_module, "fetch_live_boxscore", lambda gid: {
+            "home": {"team_stats": {"pts": 78}, "players": []},
+            "away": {"team_stats": {"pts": 74}, "players": []},
+        })
+        live_cache.clear()
+        game = client.get("/games/live/probabilities").json()[0]
+        assert "box_score" in game
+
+    def test_box_score_has_home_and_away(self, client, monkeypatch):
+        import boxscore as bs_module
+        monkeypatch.setattr(bs_module, "fetch_live_boxscore", lambda gid: {
+            "home": {"team_stats": {"pts": 78}, "players": []},
+            "away": {"team_stats": {"pts": 74}, "players": []},
+        })
+        live_cache.clear()
+        game = client.get("/games/live/probabilities").json()[0]
+        assert "home" in game["box_score"]
+        assert "away" in game["box_score"]
+
+    def test_box_score_null_when_fetch_fails(self, client, monkeypatch):
+        import boxscore as bs_module
+        monkeypatch.setattr(bs_module, "fetch_live_boxscore", lambda gid: None)
+        live_cache.clear()
+        game = client.get("/games/live/probabilities").json()[0]
+        assert game["box_score"] is None
+
+    def test_upcoming_games_have_no_box_score(self, client, monkeypatch):
+        import live_games
+        monkeypatch.setattr(live_games, "fetch_live_games", lambda: [{
+            "game_id": "0022500099",
+            "status": "Upcoming",
+            "date": "2026-03-12",
+            "time": "7:30 pm ET",
+            "period": 0, "clock": "--",
+            "home_team": {"abbr": "LAL", "name": "Lakers", "score": 0},
+            "away_team": {"abbr": "BOS", "name": "Celtics", "score": 0},
+            "last_updated": "2026-03-12T00:00:00Z",
+        }])
+        live_cache.clear()
+        game = client.get("/games/live/probabilities").json()[0]
+        assert game.get("box_score") is None

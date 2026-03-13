@@ -25,6 +25,7 @@ import lineup_impact
 import leagueschedule_compat as _lsched
 import game_tracker
 import play_by_play
+import boxscore as boxscore_module
 from database import engine, SessionLocal
 from routers.account import router as account_router
 
@@ -1127,6 +1128,7 @@ def get_live_probabilities():
 
             prob_history = game_tracker.get_prob_history(game_id)
             new_scoring_plays = game_tracker.drain_new_plays(game_id)
+            box_score = boxscore_module.fetch_live_boxscore(game_id)
 
         entry = {
             "game_id": game_id,
@@ -1145,6 +1147,7 @@ def get_live_probabilities():
             "model_type": "pregame_log5" if is_upcoming else "logistic",
             "prob_history": prob_history,
             "new_scoring_plays": new_scoring_plays,
+            "box_score": None if is_upcoming else box_score,
         }
         if is_upcoming:
             entry["date"] = g.get("date", "")

@@ -19,15 +19,15 @@ const ROWS = [
 
 function buildRows(s) {
   return {
-    shooting_fg:  fmt(s.fgm, s.fga, s.fg_pct),
-    shooting_3pt: fmt(s.fg3m, s.fg3a, s.fg3_pct),
-    shooting_ft:  fmt(s.ftm, s.fta, s.ft_pct),
-    reb: s.reb,
-    ast: s.ast,
-    stl: s.stl,
-    blk: s.blk,
-    to:  s.to,
-    pts: s.pts,
+    shooting_fg:  fmt(s.fgm ?? 0, s.fga ?? 0, s.fg_pct ?? 0),
+    shooting_3pt: fmt(s.fg3m ?? 0, s.fg3a ?? 0, s.fg3_pct ?? 0),
+    shooting_ft:  fmt(s.ftm ?? 0, s.fta ?? 0, s.ft_pct ?? 0),
+    reb: s.reb ?? 0,
+    ast: s.ast ?? 0,
+    stl: s.stl ?? 0,
+    blk: s.blk ?? 0,
+    to:  s.to  ?? 0,
+    pts: s.pts ?? 0,
   };
 }
 

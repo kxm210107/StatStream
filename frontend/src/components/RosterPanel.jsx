@@ -72,7 +72,7 @@ function TeamTable({ players, abbr }) {
           </thead>
           <tbody>
             {rows.map((p, i) => (
-              <tr key={i} style={{
+              <tr key={`${p.name}_${p.jersey}_${i}`} style={{
                 borderBottom: '1px solid var(--border-light)',
                 opacity: p.min === '--' || p.min === '00:00' ? 0.4 : 1,
               }}>

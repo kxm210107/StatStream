@@ -184,6 +184,7 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
                 game={game}
                 selected={false}
                 onClick={() => {}}
+                box_score={game.box_score ?? null}
               />
             ))}
           </div>

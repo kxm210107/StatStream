@@ -169,6 +169,10 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
   const isTomorrow = !isLive && game.date === tomorrowStr;
   const [activeTab, setActiveTab] = useState('probability');
 
+  useEffect(() => {
+    setActiveTab('probability');
+  }, [selected, game.game_id]);
+
   return (
     <div
       onClick={onClick}

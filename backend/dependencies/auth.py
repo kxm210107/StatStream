@@ -1,14 +1,27 @@
 """FastAPI dependency for verifying Supabase JWTs."""
-import os
 from dataclasses import dataclass
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError, ExpiredSignatureError
+from jose.backends import ECKey
 
 _bearer = HTTPBearer(auto_error=False)
 
-JWT_ALGORITHM = "HS256"
+JWT_ALGORITHM = "ES256"
 JWT_AUDIENCE = "authenticated"
+
+# EC public key from https://dlzupeheohnylpqkisbw.supabase.co/auth/v1/.well-known/jwks.json
+_SUPABASE_JWK = {
+    "kty": "EC",
+    "crv": "P-256",
+    "use": "sig",
+    "alg": "ES256",
+    "kid": "da741f3b-87ab-420e-b78f-b9060f5b134e",
+    "x": "VvRZ6hcpac9qoKuKQEsLmDF76y4d_PZdTVxYYaMnVqU",
+    "y": "O1wUUKtg72AIYJvzcjnZ2CmzSJ8dGwYg2hs_R3M-7m4",
+}
+
+_PUBLIC_KEY = ECKey(_SUPABASE_JWK, algorithm=JWT_ALGORITHM)
 
 
 @dataclass
@@ -19,11 +32,10 @@ class AuthIdentity:
 
 def _verify_token(token: str) -> AuthIdentity:
     """Verify a Supabase JWT string and return the auth identity. Used directly in tests."""
-    jwt_secret = os.environ.get("SUPABASE_JWT_SECRET", "")
     try:
         payload = jwt.decode(
             token,
-            jwt_secret,
+            _PUBLIC_KEY,
             algorithms=[JWT_ALGORITHM],
             audience=JWT_AUDIENCE,
             options={"verify_aud": True},
@@ -35,7 +47,9 @@ def _verify_token(token: str) -> AuthIdentity:
         return AuthIdentity(auth_user_id=auth_user_id, email=email)
     except ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    except JWTError:
+    except JWTError as e:
+        import logging
+        logging.getLogger(__name__).warning("JWT decode failed: %s | token_prefix=%s", e, token[:20] if token else None)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 

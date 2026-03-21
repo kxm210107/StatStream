@@ -14,6 +14,8 @@ import AuthGate from './components/AuthGate';
 import { fetchSeasons }       from './api';
 import logoSrc                from './assets/logo.png';
 import { useAuth } from './context/AuthContext';
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 
 // Icons are pre-rendered elements; TubelightNavbar renders them as-is.
 const TABS = [
@@ -202,7 +204,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-
+    <SpeedInsights />
     </div>
   );
 }

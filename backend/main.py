@@ -1,7 +1,4 @@
 # backend/main.py
-"""
-cd /Users/kevjumba/PycharmProjects/StatStream/backend
-@"""
 import asyncio
 import datetime
 import math
@@ -66,8 +63,8 @@ _allowed_origins = _os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
-    allow_methods=["GET"],
-    allow_headers=["Content-Type"],
+    allow_methods=["GET", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
     allow_credentials=False,
 )
 
@@ -83,10 +80,6 @@ def get_db():
 app.include_router(account_router)
 
 
-# ==========================================
-# ENDPOINT 1: Health Check
-# GET /
-# ==========================================
 @app.get("/")
 def root():
     return {
@@ -95,10 +88,6 @@ def root():
     }
 
 
-# ==========================================
-# ENDPOINT: Available seasons
-# GET /seasons
-# ==========================================
 @app.get("/seasons", response_model=List[str])
 def get_seasons(db: Session = Depends(get_db)):
     """Returns all seasons loaded into the database, newest first."""
@@ -111,10 +100,6 @@ def get_seasons(db: Session = Depends(get_db)):
     return [r[0] for r in rows]
 
 
-# ==========================================
-# ENDPOINT 2: Get ALL players
-# GET /players?season=2024-25
-# ==========================================
 @app.get("/players", response_model=List[schemas.PlayerStatSchema])
 def get_all_players(season: str = "2024-25", db: Session = Depends(get_db)):
     return (
@@ -124,84 +109,7 @@ def get_all_players(season: str = "2024-25", db: Session = Depends(get_db)):
     )
 
 
-# ==========================================
-# ENDPOINT: Search players by name
-# GET /players/search?q=lebron
-# NOTE: Must be defined BEFORE /players/{player_id} to avoid route conflict.
-# ==========================================
-@app.get("/players/search")
-def search_players(q: str = "", db: Session = Depends(get_db)):
-    # /players/filter also kept here (before {player_id}) to avoid the same conflict
-    if len(q) < 2:
-        return []
-    rows = (
-        db.query(models.PlayerStat)
-        .filter(models.PlayerStat.player_name.ilike(f"%{q}%"))
-        .order_by(models.PlayerStat.season.desc())
-        .all()
-    )
-    seen, results = set(), []
-    for row in rows:
-        if row.player_id not in seen:
-            seen.add(row.player_id)
-            results.append({
-                "player_id":   row.player_id,
-                "player_name": row.player_name,
-                "team":        row.team,
-                "position":    row.position,
-            })
-    return results[:20]
 
-
-# ==========================================
-# ENDPOINT: Filter players
-# GET /players/filter?min_pts=20&season=2024-25
-# NOTE: Must be defined BEFORE /players/{player_id} to avoid route conflict.
-# ==========================================
-@app.get("/players/filter", response_model=List[schemas.PlayerStatSchema])
-def filter_players(
-    min_pts: float = 0,
-    min_reb: float = 0,
-    min_ast: float = 0,
-    season:  str   = "2024-25",
-    db: Session = Depends(get_db),
-):
-    return (
-        db.query(models.PlayerStat)
-        .filter(
-            models.PlayerStat.season       == season,
-            models.PlayerStat.pts_per_game >= min_pts,
-            models.PlayerStat.reb_per_game >= min_reb,
-            models.PlayerStat.ast_per_game >= min_ast,
-        )
-        .order_by(models.PlayerStat.pts_per_game.desc())
-        .all()
-    )
-
-
-# ==========================================
-# ENDPOINT 3: Get ONE player by ID
-# GET /players/23?season=2024-25
-# ==========================================
-@app.get("/players/{player_id}", response_model=schemas.PlayerStatSchema)
-def get_player(player_id: int, season: str = "2024-25", db: Session = Depends(get_db)):
-    player = (
-        db.query(models.PlayerStat)
-        .filter(
-            models.PlayerStat.player_id == player_id,
-            models.PlayerStat.season    == season,
-        )
-        .first()
-    )
-    if player is None:
-        raise HTTPException(status_code=404, detail="Player not found")
-    return player
-
-
-# ==========================================
-# ENDPOINT 4: Get top scorers
-# GET /players/top/scorers?limit=10&season=2024-25
-# ==========================================
 @app.get("/players/top/scorers", response_model=List[schemas.PlayerStatSchema])
 def get_top_scorers(limit: int = 10, season: str = "2024-25", db: Session = Depends(get_db)):
     return (
@@ -213,10 +121,6 @@ def get_top_scorers(limit: int = 10, season: str = "2024-25", db: Session = Depe
     )
 
 
-# ==========================================
-# ENDPOINT 5: Search by team
-# GET /players/team/LAL?season=2024-25
-# ==========================================
 @app.get("/players/team/{team_abbr}", response_model=List[schemas.PlayerStatSchema])
 def get_players_by_team(team_abbr: str, season: str = "2024-25", db: Session = Depends(get_db)):
     return (
@@ -229,52 +133,7 @@ def get_players_by_team(team_abbr: str, season: str = "2024-25", db: Session = D
     )
 
 
-# ==========================================
-# ENDPOINT: Top rebounders
-# GET /players/top/rebounders?season=2024-25
-# ==========================================
-@app.get("/players/top/rebounders", response_model=List[schemas.PlayerStatSchema])
-def get_top_rebounders(limit: int = 10, season: str = "2024-25", db: Session = Depends(get_db)):
-    return (
-        db.query(models.PlayerStat)
-        .filter(models.PlayerStat.season == season)
-        .order_by(models.PlayerStat.reb_per_game.desc())
-        .limit(limit)
-        .all()
-    )
 
-
-# ==========================================
-# ENDPOINT: Top assisters
-# GET /players/top/assisters?season=2024-25
-# ==========================================
-@app.get("/players/top/assisters", response_model=List[schemas.PlayerStatSchema])
-def get_top_assisters(limit: int = 10, season: str = "2024-25", db: Session = Depends(get_db)):
-    return (
-        db.query(models.PlayerStat)
-        .filter(models.PlayerStat.season == season)
-        .order_by(models.PlayerStat.ast_per_game.desc())
-        .limit(limit)
-        .all()
-    )
-
-
-# ==========================================
-# ENDPOINT: League averages
-# GET /stats/averages?season=2024-25
-# ==========================================
-@app.get("/stats/averages", response_model=schemas.LeagueAverages)
-def get_league_averages(season: str = "2024-25", db: Session = Depends(get_db)):
-    avg_pts = db.query(func.avg(models.PlayerStat.pts_per_game)).filter(models.PlayerStat.season == season).scalar()
-    avg_reb = db.query(func.avg(models.PlayerStat.reb_per_game)).filter(models.PlayerStat.season == season).scalar()
-    avg_ast = db.query(func.avg(models.PlayerStat.ast_per_game)).filter(models.PlayerStat.season == season).scalar()
-    return {"avg_pts": round(avg_pts, 1), "avg_reb": round(avg_reb, 1), "avg_ast": round(avg_ast, 1)}
-
-
-# ==========================================
-# ENDPOINT: All team abbreviations
-# GET /teams?season=2024-25
-# ==========================================
 @app.get("/teams", response_model=List[str])
 def get_teams(season: str = "2024-25", db: Session = Depends(get_db)):
     rows = (
@@ -328,10 +187,6 @@ def _query_team_stats(db: Session, team: str, season: str):
     return None if row[0] is None else row
 
 
-# ==========================================
-# ENDPOINT: Compare two teams (ML-powered)
-# GET /teams/compare?team1=LAL&team2=GSW&home=LAL&season=2024-25
-# ==========================================
 @app.get("/teams/compare", response_model=schemas.CompareResult)
 def compare_teams(
     team1:  str,
@@ -596,10 +451,6 @@ def _db_team_info(db: Session, season: str) -> dict:
     return info
 
 
-# ==========================================
-# ENDPOINT: Playoff simulator
-# GET /playoff/simulate?season=2024-25&n_sims=5000
-# ==========================================
 @app.get("/playoff/simulate")
 @limiter.limit("5/minute")
 def simulate_playoffs(
@@ -802,10 +653,6 @@ def simulate_playoffs(
     }
 
 
-# ==========================================
-# ENDPOINT: Team Dashboard
-# GET /teams/{team_abbr}/dashboard?season=2024-25
-# ==========================================
 @app.get("/teams/{team_abbr}/dashboard")
 def team_dashboard(team_abbr: str, season: str = "2024-25"):
     import concurrent.futures
@@ -902,10 +749,6 @@ def team_dashboard(team_abbr: str, season: str = "2024-25"):
     return result
 
 
-# ==========================================
-# ENDPOINT: Team Lineup Impact Analysis
-# GET /teams/{abbr}/lineups
-# ==========================================
 @app.get("/teams/{abbr}/lineups", response_model=schemas.LineupResponse)
 @limiter.limit("20/minute")
 async def get_team_lineups(
@@ -932,11 +775,7 @@ async def get_team_lineups(
         raise HTTPException(status_code=500, detail=f"Failed to fetch lineup data: {exc}")
 
 
-# ==========================================
-# ENDPOINT: Team Upcoming Schedule
-# GET /teams/{team_abbr}/schedule
 # Separate from dashboard so the dashboard loads fast; frontend fetches async.
-# ==========================================
 @app.get("/teams/{team_abbr}/schedule")
 def team_schedule(team_abbr: str, season: str = "2024-25"):
     import datetime as _dt
@@ -1034,10 +873,6 @@ def team_schedule(team_abbr: str, season: str = "2024-25"):
         return []
 
 
-# ==========================================
-# ENDPOINT: Live games (no probabilities)
-# GET /games/live
-# ==========================================
 @app.get("/games/live")
 def get_live_games():
     cached = live_cache.get("live_games")
@@ -1061,10 +896,6 @@ def get_live_games():
     return result
 
 
-# ==========================================
-# ENDPOINT: Live games with win probability
-# GET /games/live/probabilities
-# ==========================================
 @app.get("/games/live/probabilities")
 def get_live_probabilities():
     cached = live_cache.get("live_probabilities")
@@ -1097,7 +928,7 @@ def get_live_probabilities():
         elif is_final:
             home_score = g["home_team"]["score"]
             away_score = g["away_team"]["score"]
-            home_prob = 1.0 if home_score > away_score else 0.0
+            home_prob = 1.0 if home_score > away_score else (0.5 if home_score == away_score else 0.0)
             away_prob = 1.0 - home_prob
             prob_history = game_tracker.get_prob_history(game_id)
             new_scoring_plays = []
@@ -1105,14 +936,22 @@ def get_live_probabilities():
         else:
             home_score = g["home_team"]["score"]
             away_score = g["away_team"]["score"]
-            home_prob, away_prob = win_probability.predict(home_score, away_score, period, clock)
+            home_abbr  = g["home_team"]["abbr"]
+            away_abbr  = g["away_team"]["abbr"]
+            home_prob, away_prob = win_probability.predict(
+                home_score, away_score, period, clock,
+                home_win_pct=_win_pct.get(home_abbr, 0.5),
+                away_win_pct=_win_pct.get(away_abbr, 0.5),
+            )
 
             # Backfill full game history on first encounter
             if not game_tracker.is_backfilled(game_id):
                 historical = play_by_play.fetch_full_game_history(game_id)
                 for p in historical:
                     h_prob, _ = win_probability.predict(
-                        p["score_home"], p["score_away"], p["period"], p["clock"]
+                        p["score_home"], p["score_away"], p["period"], p["clock"],
+                        home_win_pct=_win_pct.get(home_abbr, 0.5),
+                        away_win_pct=_win_pct.get(away_abbr, 0.5),
                     )
                     game_tracker.record_prob(game_id, p["period"], p["clock"], h_prob)
                 if historical:
@@ -1168,10 +1007,6 @@ def get_live_probabilities():
     return result
 
 
-# ==========================================
-# ENDPOINT: League-wide upcoming games
-# GET /games/upcoming
-# ==========================================
 @app.get("/games/upcoming")
 def get_upcoming_games():
     import datetime as _dt

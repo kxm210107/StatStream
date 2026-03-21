@@ -1,5 +1,8 @@
 # backend/main.py
 import asyncio
+import logging
+
+logging.basicConfig(level=logging.INFO)
 import datetime
 import math
 import random

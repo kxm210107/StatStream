@@ -6,10 +6,16 @@ Two API calls are made per request (Base + Advanced measure types) and merged
 on GROUP_ID to assemble the full set of lineup metrics.
 """
 
+import logging
+
 from nba_api.stats.endpoints import leaguedashlineups as _ep
 from nba_api.stats.static import teams as _nba_teams
 
 LeagueDashLineups = _ep.LeagueDashLineups   # exposed for monkeypatching in tests
+
+logger = logging.getLogger(__name__)
+
+_TIMEOUT = 30  # seconds per NBA API call
 
 
 def get_team_id(abbr: str) -> int:
@@ -30,21 +36,27 @@ def fetch_lineup_rows(team_abbr: str, season: str) -> list[dict]:
     """
     team_id = get_team_id(team_abbr)
 
+    logger.info("[lineups] fetching base stats for %s %s", team_abbr, season)
     base = LeagueDashLineups(
         season=season,
         team_id_nullable=team_id,
         measure_type_detailed_defense="Base",
         per_mode_detailed="Totals",
+        timeout=_TIMEOUT,
     )
     base_df = base.get_data_frames()[0]
+    logger.info("[lineups] base ok, %d rows", len(base_df))
 
+    logger.info("[lineups] fetching advanced stats for %s %s", team_abbr, season)
     adv = LeagueDashLineups(
         season=season,
         team_id_nullable=team_id,
         measure_type_detailed_defense="Advanced",
         per_mode_detailed="Totals",
+        timeout=_TIMEOUT,
     )
     adv_df = adv.get_data_frames()[0]
+    logger.info("[lineups] advanced ok, %d rows", len(adv_df))
 
     abbr_upper = team_abbr.upper()
     base_df = base_df[base_df["TEAM_ABBREVIATION"] == abbr_upper]

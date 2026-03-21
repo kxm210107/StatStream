@@ -17,20 +17,6 @@ from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy import func
 
-from nba_api.library.http import NBAStatsHTTP
-NBAStatsHTTP.HEADERS = {
-    "Host": "stats.nba.com",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-    "Referer": "https://www.nba.com/",
-    "Origin": "https://www.nba.com",
-    "x-nba-stats-origin": "stats",
-    "x-nba-stats-token": "true",
-}
-
 import models, schemas, predictor
 import live_games
 import win_probability

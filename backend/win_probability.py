@@ -6,6 +6,7 @@ Falls back to a calibrated sigmoid heuristic if the model file is missing.
 
 import os
 import math
+import numpy as np
 
 MODEL_PATH    = os.path.join(os.path.dirname(__file__), "win_prob_model.pkl")
 _model        = None
@@ -74,7 +75,6 @@ def predict(
     model = _load()
     if model is not None:
         win_pct_diff = home_win_pct - away_win_pct
-        import numpy as np
         X = np.array([[score_diff, seconds_remaining, win_pct_diff]])
         home_prob = float(model.predict_proba(X)[0][1])
     else:

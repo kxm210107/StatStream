@@ -37,3 +37,9 @@ node_modules/
 
 # VSCode personal settings
 .vscode/
+
+# Win probability training artifacts (local only)
+backend/pbp_cache.json
+backend/win_prob_test_set.npz
+backend/model_metrics.json
+backend/win_prob_model.pkl

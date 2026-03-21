@@ -26,14 +26,13 @@ def _load():
 
 def _clock_to_seconds_remaining(period: int, clock: str) -> int:
     """
-    Convert live game state to total seconds remaining in regulation.
-    period: 1-4 (overtime treated as 0 seconds remaining for model purposes)
+    Convert live game state to total seconds remaining.
+    period: 1-4 regulation, 5+ overtime (each OT period is 5 minutes).
     clock:  "MM:SS" string normalised by live_games.py
     """
-    if period <= 0 or period > 4:
+    if period <= 0:
         return 0
 
-    # Parse MM:SS
     try:
         parts = clock.split(":")
         mins  = int(parts[0])
@@ -41,27 +40,47 @@ def _clock_to_seconds_remaining(period: int, clock: str) -> int:
     except Exception:
         mins, secs = 0, 0
 
-    seconds_left_in_period   = mins * 60 + secs
-    periods_remaining_after  = 4 - period          # complete quarters still to play
+    seconds_left_in_period = mins * 60 + secs
+
+    if period > 4:
+        # OT: return only the time left in the current OT period
+        return seconds_left_in_period
+
+    periods_remaining_after = 4 - period          # complete quarters still to play
     return seconds_left_in_period + periods_remaining_after * 12 * 60
 
 
-def predict(home_score: int, away_score: int, period: int, clock: str) -> tuple[float, float]:
+def predict(
+    home_score: int,
+    away_score: int,
+    period: int,
+    clock: str,
+    home_win_pct: float = 0.5,
+    away_win_pct: float = 0.5,
+) -> tuple[float, float]:
     """
     Returns (home_win_probability, away_win_probability) as floats 0-1.
+    Uses the trained ML model when available; falls back to sigmoid heuristic
+    if the model file is missing (sigmoid uses only score_diff and seconds_remaining).
     """
     score_diff        = home_score - away_score
     seconds_remaining = _clock_to_seconds_remaining(period, clock)
 
-    # Sigmoid heuristic: calibrated so a 10-pt lead with 2 min left ~= 90%
-    # (ML model bypassed — produces overconfident predictions)
     if seconds_remaining <= 0:
         home_prob = 1.0 if score_diff > 0 else (0.5 if score_diff == 0 else 0.0)
+        home_prob = max(0.01, min(0.99, home_prob))
+        return round(home_prob, 4), round(1 - home_prob, 4)
+
+    model = _load()
+    if model is not None:
+        win_pct_diff = home_win_pct - away_win_pct
+        import numpy as np
+        X = np.array([[score_diff, seconds_remaining, win_pct_diff]])
+        home_prob = float(model.predict_proba(X)[0][1])
     else:
         z         = score_diff / (0.0091 * seconds_remaining + 1.8)
         home_prob = 1 / (1 + math.exp(-z * 1.5))
 
-    # Clamp and return
     home_prob = max(0.01, min(0.99, home_prob))
     return round(home_prob, 4), round(1 - home_prob, 4)
 

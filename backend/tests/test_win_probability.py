@@ -20,8 +20,8 @@ class TestClockToSeconds:
     def test_end_of_game(self):
         assert wp._clock_to_seconds_remaining(4, "00:00") == 0
 
-    def test_overtime_returns_zero(self):
-        assert wp._clock_to_seconds_remaining(5, "05:00") == 0
+    def test_overtime_returns_seconds_remaining(self):
+        assert wp._clock_to_seconds_remaining(5, "05:00") == 300
 
 
 class TestPredict:
@@ -52,3 +52,15 @@ class TestPredict:
         h, a = wp.predict(200, 0, 4, "00:01")
         assert h >= 0.01
         assert a >= 0.01
+
+    def test_predict_accepts_win_pct_params(self):
+        h, a = wp.predict(80, 70, 4, "02:00", home_win_pct=0.6, away_win_pct=0.4)
+        assert isinstance(h, float)
+        assert isinstance(a, float)
+        assert abs(h + a - 1.0) < 0.001
+
+    def test_predict_win_pct_defaults_unchanged(self):
+        h1, a1 = wp.predict(80, 70, 4, "02:00")
+        h2, a2 = wp.predict(80, 70, 4, "02:00", home_win_pct=0.5, away_win_pct=0.5)
+        assert h1 == h2
+        assert a1 == a2

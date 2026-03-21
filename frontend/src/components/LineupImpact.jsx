@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import LineupTable from './LineupTable';
+import { getTeamLineups } from '../api';
 
 const TEAMS = [
   'ATL','BOS','BKN','CHA','CHI','CLE','DAL','DEN','DET','GSW',
@@ -26,26 +27,16 @@ export default function LineupImpact({ season = '2025-26' }) {
   }
 
   useEffect(() => {
-    const controller = new AbortController();
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetch(`http://localhost:8000/teams/${team}/lineups?` + new URLSearchParams({
-      season,
-      min_minutes: apiMinMinutes,
-      sort_by: sortBy,
-      limit: 20,
-    }), { signal: controller.signal })
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed to fetch lineups for ${team}`);
-        return res.json();
-      })
+    getTeamLineups(team, { season, minMinutes: apiMinMinutes, limit: 20, sortBy })
       .then(data => { if (!cancelled) setLineups(data.lineups); })
       .catch(err => { if (!cancelled && err.name !== 'AbortError') setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
-    return () => { cancelled = true; controller.abort(); };
+    return () => { cancelled = true; };
   }, [team, season, apiMinMinutes, sortBy]);
 
   function handleSort(field) {

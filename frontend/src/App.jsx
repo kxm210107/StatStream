@@ -15,7 +15,6 @@ import { fetchSeasons }       from './api';
 import logoSrc                from './assets/logo.png';
 import { useAuth } from './context/AuthContext';
 
-// ── Tab definitions ───────────────────────────────────────────────────────────
 // Icons are pre-rendered elements; TubelightNavbar renders them as-is.
 const TABS = [
   { id: 'Team Search',    label: 'Team Search',    icon: <Search     size={16} strokeWidth={2.5} /> },

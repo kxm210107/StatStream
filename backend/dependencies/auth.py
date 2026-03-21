@@ -48,8 +48,7 @@ def _verify_token(token: str) -> AuthIdentity:
     except ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except JWTError as e:
-        import logging
-        logging.getLogger(__name__).warning("JWT decode failed: %s | token_prefix=%s", e, token[:20] if token else None)
+        print(f"[auth] JWT decode failed: {e} | token_prefix={token[:20] if token else None}", flush=True)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
@@ -57,6 +56,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> AuthIdentity:
     """FastAPI dependency — extracts Bearer token and verifies it."""
+    print(f"[auth] get_current_user called, credentials={'present' if credentials else 'None'}", flush=True)
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")
     return _verify_token(credentials.credentials)

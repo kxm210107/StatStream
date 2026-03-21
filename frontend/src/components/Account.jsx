@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 import { getAccountProfile, updateFavoriteTeam, getAccountSettings } from '../api';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
@@ -30,17 +31,21 @@ export default function Account({ onOpenMyTeam, onFavoriteTeamChanged }) {
     }
     setProfileLoading(true);
     setProfileError(null);
-    const token = getAccessToken();
-    Promise.all([getAccountProfile(token), getAccountSettings(token)])
-      .then(([p, s]) => { setProfile(p); setSettings(s); })
-      .catch(() => setProfileError('Failed to load account data. Please try refreshing.'))
-      .finally(() => setProfileLoading(false));
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token;
+      if (!token) { setProfileError('Failed to load account data. Please try refreshing.'); setProfileLoading(false); return; }
+      Promise.all([getAccountProfile(token), getAccountSettings(token)])
+        .then(([p, s]) => { setProfile(p); setSettings(s); })
+        .catch(() => setProfileError('Failed to load account data. Please try refreshing.'))
+        .finally(() => setProfileLoading(false));
+    });
   }, [isLoggedIn]);
 
   async function handleSetFavoriteTeam(abbr) {
     setTeamMsg(null);
     try {
-      const token = getAccessToken();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
       const result = await updateFavoriteTeam(token, abbr || null);
       setProfile(prev => ({ ...prev, favorite_team_abbr: result.favorite_team_abbr }));
       onFavoriteTeamChanged?.(result.favorite_team_abbr ?? null);

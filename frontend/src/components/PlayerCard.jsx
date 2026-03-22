@@ -186,7 +186,7 @@ function GameLogTable({ gameLog, loading }) {
         </thead>
         <tbody>
           {gameLog.map((g, i) => {
-            const win = g.wl === 'W';
+            const win = g.result === 'W';
             const fgDisplay = g.fg_pct != null
               ? `${(g.fg_pct * fgMultiplier).toFixed(1)}%`
               : '—';
@@ -196,17 +196,17 @@ function GameLogTable({ gameLog, loading }) {
                 borderBottom: i < gameLog.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
               }}>
                 <td style={{ padding: '6px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                  {g.game_date ?? g.date ?? '—'}
+                  {g.date ?? '—'}
                 </td>
                 <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  {g.matchup ?? '—'}
+                  {g.opponent ?? '—'}
                 </td>
                 <td style={{
                   padding: '6px 8px', textAlign: 'right',
                   fontWeight: 800, fontFamily: 'var(--font-mono)',
                   color: win ? '#4ADE80' : '#F87171',
                 }}>
-                  {g.wl ?? '—'}
+                  {g.result ?? '—'}
                 </td>
                 {[g.pts, g.reb, g.ast, g.stl, g.blk].map((val, j) => (
                   <td key={j} style={{
@@ -370,17 +370,17 @@ export default function PlayerCard({ player, season, onRemove }) {
 
       {/* ── Core stats row — 6 bubbles ── */}
       <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
-        <StatBubble label="PTS" value={player.pts_per_game} color="#22D3EE" />
+        <StatBubble label="PTS" value={player.pts_per_game} color="var(--text-primary)" />
         <VSep />
-        <StatBubble label="REB" value={player.reb_per_game} color="#4ADE80" />
+        <StatBubble label="REB" value={player.reb_per_game} color="var(--text-primary)" />
         <VSep />
-        <StatBubble label="AST" value={player.ast_per_game} color="#F97316" />
+        <StatBubble label="AST" value={player.ast_per_game} color="var(--text-primary)" />
         <VSep />
-        <StatBubble label="BLK" value={player.blk_per_game} color="#A78BFA" />
+        <StatBubble label="BLK" value={player.blk_per_game} color="var(--text-primary)" />
         <VSep />
-        <StatBubble label="STL" value={player.stl_per_game} color="#F43F5E" />
+        <StatBubble label="STL" value={player.stl_per_game} color="var(--text-primary)" />
         <VSep />
-        <StatBubble label="TOV" value={player.tov_per_game} color="#94A3B8" />
+        <StatBubble label="TOV" value={player.tov_per_game} color="var(--text-primary)" />
       </div>
 
       <Divider />

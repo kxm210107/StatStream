@@ -177,7 +177,7 @@ export default function PlayerProfileSearch({ season }) {
         }}>
           Top 50 Players
         </h3>
-        <PlayerTable season={season} onPlayerClick={addPlayer} />
+        <PlayerTable season={season} onPlayerClick={addPlayer} hideSearch />
       </div>
     </div>
   );

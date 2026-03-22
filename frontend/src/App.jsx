@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutGrid, Trophy, Search, Zap, Award, Activity, BarChart2, User } from 'lucide-react';
+import { Users, Trophy, Search, Zap, Award, Activity, BarChart2, User } from 'lucide-react';
 import PlayerProfileSearch    from './components/PlayerProfileSearch';
 import TopScorers             from './components/TopScorers';
 import PlayerSearch           from './components/PlayerSearch';
@@ -21,7 +21,7 @@ const TABS = [
   { id: 'Team Search',    label: 'Team Search',    icon: <Search     size={16} strokeWidth={2.5} /> },
   { id: 'Live',           label: 'Live',            icon: <Activity   size={16} strokeWidth={2.5} /> },
   { id: 'Lineups',        label: 'Lineups',         icon: <BarChart2  size={16} strokeWidth={2.5} /> },
-  { id: 'Roster',         label: 'Roster',          icon: <LayoutGrid size={16} strokeWidth={2.5} /> },
+  { id: 'Roster',         label: 'Players',         icon: <Users      size={16} strokeWidth={2.5} /> },
   { id: 'Top Scorers',    label: 'Top Scorers',     icon: <Trophy     size={16} strokeWidth={2.5} /> },
   { id: 'Team Comparer',  label: 'Team Comparer',   icon: <Zap        size={16} strokeWidth={2.5} /> },
   { id: 'Playoffs',       label: 'Playoffs',        icon: <Award      size={16} strokeWidth={2.5} /> },

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LayoutGrid, Trophy, Search, Zap, Award, Activity, BarChart2, User } from 'lucide-react';
-import PlayerTable            from './components/PlayerTable';
+import PlayerProfileSearch    from './components/PlayerProfileSearch';
 import TopScorers             from './components/TopScorers';
 import PlayerSearch           from './components/PlayerSearch';
 import TeamComparer           from './components/TeamComparer';
@@ -97,6 +97,7 @@ export default function App() {
           </span>
 
           {/* Season dropdown */}
+          {!['Team Search', 'Live', 'Roster'].includes(activeTab) && (
           <div style={{ position: 'relative', marginLeft: 4 }}>
             <select
               value={activeSeason}
@@ -128,6 +129,7 @@ export default function App() {
               pointerEvents: 'none', color: 'var(--text-muted)', fontSize: 8,
             }}>▼</span>
           </div>
+          )}
           </div> {/* end left group */}
 
 
@@ -165,7 +167,7 @@ export default function App() {
       }}>
         <div className="fade-in" key={activeTab + activeSeason}>
           {!activeSeason && <div className="spinner" />}
-          {activeSeason && activeTab === 'Roster'        && <PlayerTable      season={activeSeason} />}
+          {activeSeason && activeTab === 'Roster'        && <PlayerProfileSearch season={activeSeason} />}
           {activeSeason && activeTab === 'Top Scorers'   && <TopScorers       season={activeSeason} />}
           {activeSeason && activeTab === 'Team Search'   && <PlayerSearch     season={activeSeason} onGoLive={goLive} favoriteTeam={favoriteTeam} />}
           {activeSeason && activeTab === 'Team Comparer' && (

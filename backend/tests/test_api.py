@@ -133,6 +133,38 @@ class TestTopScorers:
         assert len(players_25) > len(players_24)
 
 
+class TestPlayerSearch:
+
+    def test_returns_200(self, client):
+        assert client.get("/players/search?q=LeBron&season=2024-25").status_code == 200
+
+    def test_returns_list(self, client):
+        data = client.get("/players/search?q=LeBron&season=2024-25").json()
+        assert isinstance(data, list)
+
+    def test_finds_lebron(self, client):
+        data = client.get("/players/search?q=LeBron&season=2024-25").json()
+        assert len(data) >= 1
+        assert data[0]["player_name"] == "LeBron James"
+
+    def test_empty_query_returns_empty(self, client):
+        data = client.get("/players/search?q=&season=2024-25").json()
+        assert data == []
+
+    def test_short_query_returns_empty(self, client):
+        data = client.get("/players/search?q=L&season=2024-25").json()
+        assert data == []
+
+    def test_partial_name_match(self, client):
+        data = client.get("/players/search?q=james&season=2024-25").json()
+        names = [p["player_name"] for p in data]
+        assert "LeBron James" in names
+
+    def test_wrong_season_returns_empty(self, client):
+        data = client.get("/players/search?q=LeBron&season=1900-01").json()
+        assert data == []
+
+
 # ── Team roster ───────────────────────────────────────────────────────────────
 
 class TestPlayersByTeam:

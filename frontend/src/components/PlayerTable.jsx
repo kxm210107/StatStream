@@ -117,7 +117,7 @@ function TeamCell({ abbr }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function PlayerTable({ season = '2024-25' }) {
+export default function PlayerTable({ season = '2024-25', onPlayerClick = null }) {
   const [players,  setPlayers ] = useState([]);
   const [loading,  setLoading ] = useState(true);
   const [error,    setError   ] = useState(null);
@@ -244,10 +244,11 @@ export default function PlayerTable({ season = '2024-25' }) {
                 return (
                   <tr
                     key={p.player_id}
+                    onClick={() => onPlayerClick && onPlayerClick(p)}
                     style={{
                       background: isEven ? 'rgba(255,255,255,0.012)' : 'transparent',
                       transition: 'background 0.15s ease',
-                      cursor: 'pointer',
+                      cursor: onPlayerClick ? 'pointer' : 'default',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                     onMouseLeave={e => e.currentTarget.style.background = isEven ? 'rgba(255,255,255,0.012)' : 'transparent'}

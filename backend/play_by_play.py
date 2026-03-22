@@ -43,9 +43,12 @@ def fetch_full_game_history(game_id: str) -> list[dict]:
     for action in actions:
         action_type = action.get("actionType", "").lower()
         shot_result = action.get("shotResult", "").lower()
-        if action_type not in ("2pt", "3pt") or shot_result != "made":
+        if action_type in ("2pt", "3pt") and shot_result == "made":
+            points = 3 if action_type == "3pt" else 2
+        elif action_type == "freethrow" and shot_result == "made":
+            points = 1
+        else:
             continue
-        points = 3 if action_type == "3pt" else 2
         plays.append({
             "action_number": int(action.get("actionNumber", 0)),
             "team_abbr":     action.get("teamTricode", ""),
@@ -87,17 +90,18 @@ def fetch_scoring_plays(game_id: str, since_action_number: int) -> tuple[list[di
         if num > max_seen:
             max_seen = num
         if num <= since_action_number:
-            continue  # already processed
+            continue
 
         action_type = action.get("actionType", "").lower()
         shot_result = action.get("shotResult", "").lower()
 
-        if action_type not in ("2pt", "3pt"):
-            continue
-        if shot_result != "made":
+        if action_type in ("2pt", "3pt") and shot_result == "made":
+            points = 3 if action_type == "3pt" else 2
+        elif action_type == "freethrow" and shot_result == "made":
+            points = 1
+        else:
             continue
 
-        points = 3 if action_type == "3pt" else 2
         plays.append({
             "action_number": num,
             "team_abbr":     action.get("teamTricode", ""),

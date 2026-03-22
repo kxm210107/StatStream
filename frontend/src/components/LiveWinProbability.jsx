@@ -50,7 +50,6 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
 
   return (
     <div>
-      {/* ── Live section header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h2 style={{
@@ -78,7 +77,6 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
         </div>
       </div>
 
-      {/* ── Live games ── */}
       {loading && (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
           <div className="spinner" style={{ margin: '0 auto 16px' }} />
@@ -135,9 +133,7 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
         </div>
       )}
 
-      {/* ── Upcoming section ── */}
       <div style={{ marginTop: 48 }}>
-        {/* Upcoming header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{
             fontFamily: 'var(--font-display)', fontSize: 22,
@@ -148,7 +144,6 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
           </h2>
         </div>
 
-        {/* Upcoming loading */}
         {upcomingLoading && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
             <div className="spinner" style={{ margin: '0 auto 12px' }} />
@@ -156,7 +151,6 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
           </div>
         )}
 
-        {/* Upcoming error */}
         {!upcomingLoading && upcomingError && (
           <div style={{
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
@@ -166,7 +160,6 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
           </div>
         )}
 
-        {/* Upcoming empty state */}
         {!upcomingLoading && !upcomingError && upcoming.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, letterSpacing: '0.06em' }}>
@@ -175,7 +168,6 @@ export default function LiveWinProbability({ initialSelectedGameId = null, favor
           </div>
         )}
 
-        {/* Upcoming game list */}
         {!upcomingLoading && !upcomingError && upcoming.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {upcoming.map(game => (

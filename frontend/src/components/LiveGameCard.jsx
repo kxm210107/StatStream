@@ -190,11 +190,9 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
         boxSizing: 'border-box',
       }}
     >
-      {/* Main row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <ScoreFlash plays={new_scoring_plays} teamAbbr={away.abbr} side="left" />
 
-        {/* Status badge */}
         <div style={{ minWidth: 72, flexShrink: 0 }}>
           {isFinal ? (
             <span style={{
@@ -229,7 +227,6 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
           )}
         </div>
 
-        {/* Away team */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{
@@ -251,14 +248,12 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
           )}
         </div>
 
-        {/* Center: score / countdown / time */}
         <div style={{ flexShrink: 0 }}>
           {isLive    && <ScoreCell home={home} away={away} />}
           {isToday   && !isLive && <CountdownCell dateStr={game.date} timeStr={game.time} />}
           {isTomorrow && <TipoffCell timeStr={game.time} />}
         </div>
 
-        {/* Home team */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 14 }}>
           {getTeamLogoUrl(home.abbr) && (
             <img src={getTeamLogoUrl(home.abbr)} alt={home.abbr} width={48} height={48}
@@ -283,7 +278,6 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
         <ScoreFlash plays={new_scoring_plays} teamAbbr={home.abbr} side="right" />
       </div>
 
-      {/* Win probability bar — live and pregame */}
       {home.win_probability != null && (
         <div style={{ marginTop: 14 }}>
           <WinProbabilityBar
@@ -295,10 +289,8 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
         </div>
       )}
 
-      {/* Expanded panel — tabs shown when live game is selected */}
       {selected && isLive && (
         <div style={{ marginTop: 20 }}>
-          {/* Tab bar */}
           <div style={{
             display: 'flex', gap: 4, marginBottom: 16,
             borderBottom: '1px solid var(--border-light)', paddingBottom: 0,
@@ -331,7 +323,6 @@ export default function LiveGameCard({ game, selected, onClick, prob_history = [
             ))}
           </div>
 
-          {/* Tab content */}
           {activeTab === 'probability' && (
             <WinProbabilityChart
               prob_history={prob_history}

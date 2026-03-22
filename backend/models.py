@@ -21,6 +21,17 @@ class PlayerStat(Base):
     reb_per_game = Column(Float)
     ast_per_game = Column(Float)
     position     = Column(String, nullable=True)
+    gp            = Column(Float, nullable=True)   # games played
+    min_per_game  = Column(Float, nullable=True)   # minutes per game
+    blk_per_game  = Column(Float, nullable=True)
+    stl_per_game  = Column(Float, nullable=True)
+    tov_per_game  = Column(Float, nullable=True)
+    fg_pct        = Column(Float, nullable=True)   # field goal %
+    fg3_pct       = Column(Float, nullable=True)   # 3-point %
+    ft_pct        = Column(Float, nullable=True)   # free throw %
+    plus_minus    = Column(Float, nullable=True)
+    ts_pct        = Column(Float, nullable=True)   # true shooting % (from advanced)
+    net_rating    = Column(Float, nullable=True)   # net rating (from advanced)
 
 
 class UserProfile(Base):

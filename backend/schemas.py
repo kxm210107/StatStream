@@ -13,11 +13,17 @@ class PlayerStatSchema(BaseModel):
     reb_per_game: float
     ast_per_game: float
     position:     Optional[str] = None
-
-class LeagueAverages(BaseModel):
-    avg_pts: float
-    avg_reb: float
-    avg_ast: float
+    gp:            Optional[float] = None
+    min_per_game:  Optional[float] = None
+    blk_per_game:  Optional[float] = None
+    stl_per_game:  Optional[float] = None
+    tov_per_game:  Optional[float] = None
+    fg_pct:        Optional[float] = None
+    fg3_pct:       Optional[float] = None
+    ft_pct:        Optional[float] = None
+    plus_minus:    Optional[float] = None
+    ts_pct:        Optional[float] = None
+    net_rating:    Optional[float] = None
 
 class TeamStats(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -35,18 +35,29 @@ def load_season(session: Session, season: str) -> int:
     """Fetch one season and upsert every row.  Returns number of rows saved."""
     df = fetch_player_stats(season)
 
-    df = df[["PLAYER_ID", "PLAYER_NAME", "TEAM_ABBREVIATION", "PTS", "REB", "AST"]]
-    df.columns = ["player_id", "player_name", "team", "pts_per_game", "reb_per_game", "ast_per_game"]
+    base_cols = ["PLAYER_ID", "PLAYER_NAME", "TEAM_ABBREVIATION", "PTS", "REB", "AST",
+                 "BLK", "STL", "TOV", "FG_PCT", "FG3_PCT", "FT_PCT", "PLUS_MINUS", "GP", "MIN"]
+    df = df[base_cols]
 
     for _, row in df.iterrows():
         stat = PlayerStat(
-            player_id    = int(row["player_id"]),
+            player_id    = int(row["PLAYER_ID"]),
             season       = season,
-            player_name  = row["player_name"],
-            team         = row["team"],
-            pts_per_game = float(row["pts_per_game"]),
-            reb_per_game = float(row["reb_per_game"]),
-            ast_per_game = float(row["ast_per_game"]),
+            player_name  = row["PLAYER_NAME"],
+            team         = row["TEAM_ABBREVIATION"],
+            pts_per_game = float(row["PTS"] or 0),
+            reb_per_game = float(row["REB"] or 0),
+            ast_per_game = float(row["AST"] or 0),
+            blk_per_game = float(row["BLK"] or 0),
+            stl_per_game = float(row["STL"] or 0),
+            tov_per_game = float(row["TOV"] or 0),
+            fg_pct       = float(row["FG_PCT"] or 0),
+            fg3_pct      = float(row["FG3_PCT"] or 0),
+            ft_pct       = float(row["FT_PCT"] or 0),
+            plus_minus   = float(row["PLUS_MINUS"] or 0),
+            gp           = float(row["GP"] or 0),
+            min_per_game = float(row["MIN"] or 0),
+            # ts_pct and net_rating omitted here — seeded by seed_season.py
         )
         session.merge(stat)
 

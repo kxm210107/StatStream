@@ -37,17 +37,23 @@ export async function fetchTeams(season = '2024-25') {
   return res.json();
 }
 
+export async function searchPlayers(q, season = '2024-25') {
+  const res = await fetch(`${BASE_URL}/players/search?q=${encodeURIComponent(q)}&season=${season}`);
+  if (!res.ok) throw new Error('Search failed');
+  return res.json();
+}
+
+export async function fetchPlayerGameLog(playerId, season = '2024-25') {
+  const res = await fetch(`${BASE_URL}/players/${playerId}/gamelog?season=${season}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function fetchTeamComparison(team1, team2, home, season = '2024-25') {
   const res = await fetch(
     `${BASE_URL}/teams/compare?team1=${team1}&team2=${team2}&home=${home}&season=${season}`
   );
   if (!res.ok) throw new Error('Failed to compare teams');
-  return res.json();
-}
-
-export async function searchPlayers(q) {
-  const res = await fetch(`${BASE_URL}/players/search?q=${encodeURIComponent(q)}`);
-  if (!res.ok) throw new Error('Search failed');
   return res.json();
 }
 
@@ -68,12 +74,6 @@ export async function fetchTeamDashboard(team, season = '2024-25') {
 export async function fetchTeamSchedule(team, season = '2024-25') {
   const res = await fetch(`${BASE_URL}/teams/${team}/schedule?season=${season}`);
   if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getLiveGames() {
-  const res = await fetch(`${BASE_URL}/games/live`);
-  if (!res.ok) throw new Error('Failed to fetch live games');
   return res.json();
 }
 

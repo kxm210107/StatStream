@@ -137,6 +137,54 @@ def get_players_by_team(team_abbr: str, season: str = "2024-25", db: Session = D
 
 
 
+@app.get("/players/search", response_model=List[schemas.PlayerStatSchema])
+def search_players(q: str = "", season: str = "2024-25", db: Session = Depends(get_db)):
+    """Case-insensitive player name search for autocomplete. Returns up to 10 matches."""
+    if not q or len(q.strip()) < 2:
+        return []
+    return (
+        db.query(models.PlayerStat)
+        .filter(
+            models.PlayerStat.season == season,
+            models.PlayerStat.player_name.ilike(f"%{q.strip()}%"),
+        )
+        .order_by(models.PlayerStat.pts_per_game.desc())
+        .limit(10)
+        .all()
+    )
+
+
+@app.get("/players/{player_id}/gamelog")
+def get_player_gamelog(player_id: int, season: str = "2024-25"):
+    """Fetch last 10 games for a player from NBA API. Cached for 5 minutes."""
+    cache_key = f"gamelog:{player_id}:{season}"
+    cached = live_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        from nba_api.stats.endpoints import playergamelog
+        log = playergamelog.PlayerGameLog(player_id=player_id, season=season)
+        df = log.get_data_frames()[0].head(10)
+        games = []
+        for _, row in df.iterrows():
+            games.append({
+                "date":    row.get("GAME_DATE", ""),
+                "opponent": row.get("MATCHUP", ""),
+                "result":  row.get("WL", ""),
+                "pts":     float(row.get("PTS", 0) or 0),
+                "reb":     float(row.get("REB", 0) or 0),
+                "ast":     float(row.get("AST", 0) or 0),
+                "stl":     float(row.get("STL", 0) or 0),
+                "blk":     float(row.get("BLK", 0) or 0),
+                "fg_pct":  float(row.get("FG_PCT", 0) or 0),
+            })
+        live_cache.set(cache_key, games, ttl=300)
+        return games
+    except Exception:
+        return []
+
+
 @app.get("/teams", response_model=List[str])
 def get_teams(season: str = "2024-25", db: Session = Depends(get_db)):
     rows = (

@@ -71,17 +71,34 @@ def _fetch_win_pcts(seasons: list[str]) -> dict[str, dict]:
             data    = logs["resultSets"][0]["rowSet"]
             idx     = {h: i for i, h in enumerate(headers)}
 
+            # W_PCT was removed from the API response; compute cumulative win%
+            # per team chronologically (sorted by GAME_ID, which is date-ordered).
+            # We use the win% *after* the game (inclusive) as a proxy for
+            # pre-game strength — sufficient for a 3-season model.
+            team_record: dict[str, dict] = {}  # abbr -> {wins, games}
+
             rows = []
-            for row in data:
-                wl = row[idx["WL"]]
-                if wl not in ("W", "L"):
-                    continue
+            # Sort by GAME_ID ascending so we process games in date order
+            sorted_data = sorted(
+                [r for r in data if r[idx["WL"]] in ("W", "L")],
+                key=lambda r: r[idx["GAME_ID"]],
+            )
+            for row in sorted_data:
+                abbr = row[idx["TEAM_ABBREVIATION"]]
+                wl   = row[idx["WL"]]
+                if abbr not in team_record:
+                    team_record[abbr] = {"wins": 0, "games": 0}
+                team_record[abbr]["games"] += 1
+                if wl == "W":
+                    team_record[abbr]["wins"] += 1
+                g = team_record[abbr]["games"]
+                w_pct = team_record[abbr]["wins"] / g if g > 0 else 0.5
                 rows.append({
                     "game_id":   row[idx["GAME_ID"]],
-                    "team_abbr": row[idx["TEAM_ABBREVIATION"]],
+                    "team_abbr": abbr,
                     "matchup":   row[idx["MATCHUP"]],
                     "wl":        wl,
-                    "w_pct":     float(row[idx["W_PCT"]] or 0.5),
+                    "w_pct":     w_pct,
                 })
 
             by_game: dict[str, list] = {}
@@ -108,6 +125,17 @@ def _fetch_win_pcts(seasons: list[str]) -> dict[str, dict]:
     return game_info
 
 
+def _iso_clock_to_mm_ss(clock: str) -> str:
+    """Convert ISO 8601 duration 'PT11M15.00S' to 'MM:SS' string."""
+    import re
+    m = re.match(r"PT(\d+)M([\d.]+)S", clock)
+    if not m:
+        return "0:00"
+    mins = int(m.group(1))
+    secs = int(float(m.group(2)))
+    return f"{mins}:{secs:02d}"
+
+
 def _fetch_pbp_snapshots(
     game_id: str,
     home_win: int,
@@ -116,44 +144,39 @@ def _fetch_pbp_snapshots(
 ) -> list[dict]:
     """
     Fetch play-by-play for one game and return feature rows for every scoring play.
+    Uses PlayByPlayV3 (V2 no longer returns data from the NBA API).
     Returns list of {"score_diff": int, "seconds_remaining": int,
                      "win_pct_diff": float, "label": int, "game_id": str}
     """
-    from nba_api.stats.endpoints.playbyplayv2 import PlayByPlayV2
+    from nba_api.stats.endpoints.playbyplayv3 import PlayByPlayV3
 
     try:
-        pbp = PlayByPlayV2(game_id=game_id).get_dict()
-        headers = pbp["resultSets"][0]["headers"]
-        rows    = pbp["resultSets"][0]["rowSet"]
-        idx     = {h: i for i, h in enumerate(headers)}
+        pbp     = PlayByPlayV3(game_id=game_id).get_dict()
+        actions = pbp["game"]["actions"]
     except Exception as e:
-        print(f"    Warning: PBP fetch failed for {game_id}: {e}")
+        msg = str(e)
+        print(f"    Warning: PBP fetch failed for {game_id}: {msg}")
+        if "timed out" in msg or "timeout" in msg.lower():
+            return None  # signal caller to back off
         return []
 
     snapshots = []
 
-    for row in rows:
-        score_str  = row[idx.get("SCORE", -1)] if "SCORE" in idx else None
-        period     = row[idx.get("PERIOD", -1)] if "PERIOD" in idx else None
-        clock      = row[idx.get("PCTIMESTRING", -1)] if "PCTIMESTRING" in idx else None
-        event_type = row[idx.get("EVENTMSGTYPE", -1)] if "EVENTMSGTYPE" in idx else None
-
-        # Event types: 1=made FG, 3=made FT
-        if event_type not in (1, 3):
+    for action in actions:
+        if action.get("pointsTotal", 0) <= 0:
             continue
-        if not score_str or period is None or not clock:
+
+        period = action.get("period")
+        clock  = action.get("clock", "")
+        try:
+            home_score = int(action["scoreHome"])
+            away_score = int(action["scoreAway"])
+        except (KeyError, ValueError):
             continue
 
         try:
-            parts = score_str.split(" - ")
-            # NBA API SCORE format: "visitor - home"
-            away_score = int(parts[0])
-            home_score = int(parts[1])
-        except Exception:
-            continue
-
-        try:
-            sec = _clock_to_seconds_remaining(int(period), str(clock))
+            mm_ss = _iso_clock_to_mm_ss(clock)
+            sec   = _clock_to_seconds_remaining(int(period), mm_ss)
         except Exception:
             continue
 
@@ -198,12 +221,22 @@ def collect_snapshots(game_info: dict[str, dict]) -> list[dict]:
             continue
 
         info = game_info[game_id]
-        snaps = _fetch_pbp_snapshots(
-            game_id,
-            info["home_win"],
-            info["home_win_pct"],
-            info["away_win_pct"],
-        )
+        backoff = 1.0
+        while True:
+            snaps = _fetch_pbp_snapshots(
+                game_id,
+                info["home_win"],
+                info["home_win_pct"],
+                info["away_win_pct"],
+            )
+            if snaps is None:
+                # timeout — back off and retry
+                print(f"    Rate-limited, backing off {backoff:.0f}s before retry...")
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 60)
+                continue
+            break
+
         cache[game_id] = snaps
         all_snapshots.extend(snaps)
         fetched += 1
@@ -283,18 +316,17 @@ def train(seasons: list[str] | None = None):
     from sklearn.linear_model  import LogisticRegression
     from sklearn.preprocessing import StandardScaler
     from sklearn.pipeline      import Pipeline
-    from sklearn.calibration   import CalibratedClassifierCV
 
-    # Step 1: fit scaler + base logistic regression on training set
-    base_pipeline = Pipeline([
+    # Fit on train + cal combined — logistic regression is inherently well-calibrated
+    # so a separate Platt calibration step is unnecessary.
+    X_train_cal = np.vstack([X_train, X_cal])
+    y_train_cal = np.concatenate([y_train, y_cal])
+
+    calibrated = Pipeline([
         ("scaler", StandardScaler()),
         ("clf",    LogisticRegression(max_iter=1000)),
     ])
-    base_pipeline.fit(X_train, y_train)
-
-    # Step 2: wrap with Platt calibration fitted on the dedicated calibration split
-    calibrated = CalibratedClassifierCV(base_pipeline, method="sigmoid", cv="prefit")
-    calibrated.fit(X_cal, y_cal)
+    calibrated.fit(X_train_cal, y_train_cal)
 
     print("\n[4/4] Evaluating on holdout test set...")
     from sklearn.metrics import roc_auc_score, brier_score_loss

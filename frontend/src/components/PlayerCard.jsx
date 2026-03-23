@@ -52,20 +52,24 @@ function StatBubble({ label, value, color, isWinner = false }) {
     <div style={{
       textAlign: 'center', flex: 1,
       borderRadius: 8,
-      background: isWinner ? 'rgba(74,222,128,0.07)' : 'transparent',
-      padding: '6px 2px',
+      background: isWinner ? 'rgba(74,222,128,0.13)' : 'transparent',
+      border: isWinner ? '1px solid rgba(74,222,128,0.3)' : '1px solid transparent',
+      padding: '6px 4px',
       transition: 'background 0.2s',
     }}>
       <div style={{
         fontSize: 22, fontWeight: 900,
         fontFamily: 'var(--font-mono)',
-        color,
+        color: isWinner ? '#4ADE80' : color,
         lineHeight: 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
+        position: 'relative', display: 'inline-block',
       }}>
         {value?.toFixed(1) ?? '—'}
         {isWinner && (
-          <span style={{ fontSize: 9, color: '#4ADE80', lineHeight: 1, marginTop: -8, marginLeft: 1 }}>▲</span>
+          <span style={{
+            position: 'absolute', top: -6, right: -10,
+            fontSize: 8, color: '#4ADE80', lineHeight: 1,
+          }}>▲</span>
         )}
       </div>
       <div style={{

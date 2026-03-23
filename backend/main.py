@@ -28,30 +28,9 @@ import play_by_play
 import boxscore as boxscore_module
 from database import engine, SessionLocal
 from routers.account import router as account_router
-
-models.Base.metadata.create_all(bind=engine)
-
-# ── Safe column migrations ────────────────────────────────────────────────────
-# create_all won't add columns to existing tables; use ALTER TABLE for new ones.
+from contextlib import asynccontextmanager
 from sqlalchemy import text as _text
 
-with engine.connect() as _conn:
-    _dialect = engine.dialect.name
-    if _dialect == "sqlite":
-        # SQLite: check PRAGMA table_info instead of information_schema
-        _cols = _conn.execute(_text("PRAGMA table_info(player_stats)")).fetchall()
-        _col_names = [row[1] for row in _cols]
-        _exists = "position" in _col_names
-    else:
-        _exists = _conn.execute(_text("""
-            SELECT 1 FROM information_schema.columns
-            WHERE table_name = 'player_stats' AND column_name = 'position'
-        """)).fetchone() is not None
-    if not _exists:
-        _conn.execute(_text("ALTER TABLE player_stats ADD COLUMN position VARCHAR"))
-        _conn.commit()
-
-# Add new stat columns (IF NOT EXISTS — safe to run every deploy)
 _NEW_STAT_COLS = [
     ("gp",           "FLOAT"),
     ("min_per_game", "FLOAT"),
@@ -65,18 +44,49 @@ _NEW_STAT_COLS = [
     ("ts_pct",       "FLOAT"),
     ("net_rating",   "FLOAT"),
 ]
-with engine.connect() as _conn:
-    _dialect = engine.dialect.name
-    for _col, _type in _NEW_STAT_COLS:
-        if _dialect == "sqlite":
-            _existing = [r[1] for r in _conn.execute(_text("PRAGMA table_info(player_stats)")).fetchall()]
-            if _col not in _existing:
-                _conn.execute(_text(f"ALTER TABLE player_stats ADD COLUMN {_col} {_type}"))
-        else:
-            _conn.execute(_text(f"ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS {_col} {_type}"))
-    _conn.commit()
 
-app = FastAPI(title="StatStream API", version="2.0")
+def _run_migrations():
+    """Run DB migrations in a background thread after server starts."""
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            dialect = engine.dialect.name
+            # position column
+            if dialect == "sqlite":
+                cols = [r[1] for r in conn.execute(_text("PRAGMA table_info(player_stats)")).fetchall()]
+                if "position" not in cols:
+                    conn.execute(_text("ALTER TABLE player_stats ADD COLUMN position VARCHAR"))
+                    conn.commit()
+            else:
+                exists = conn.execute(_text("""
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'player_stats' AND column_name = 'position'
+                """)).fetchone() is not None
+                if not exists:
+                    conn.execute(_text("ALTER TABLE player_stats ADD COLUMN position VARCHAR"))
+                    conn.commit()
+            # new stat columns
+            for col, typ in _NEW_STAT_COLS:
+                if dialect == "sqlite":
+                    existing = [r[1] for r in conn.execute(_text("PRAGMA table_info(player_stats)")).fetchall()]
+                    if col not in existing:
+                        conn.execute(_text(f"ALTER TABLE player_stats ADD COLUMN {col} {typ}"))
+                else:
+                    conn.execute(_text(f"ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS {col} {typ}"))
+            conn.commit()
+        logging.info("DB migrations complete.")
+    except Exception as e:
+        logging.error(f"Migration error (non-fatal): {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run migrations in a thread so uvicorn is not blocked
+    import threading
+    t = threading.Thread(target=_run_migrations, daemon=True)
+    t.start()
+    yield
+
+app = FastAPI(title="StatStream API", version="2.0", lifespan=lifespan)
 
 # ── Rate limiting ─────────────────────────────────────────────────────────────
 # Global default: 100 requests/minute per IP.

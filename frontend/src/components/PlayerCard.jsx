@@ -47,21 +47,31 @@ function PlayerHeadshot({ playerId, playerName, teamColor, size = 72 }) {
 
 // ── Stat bubble ───────────────────────────────────────────────────────────────
 
-function StatBubble({ label, value, color }) {
+function StatBubble({ label, value, color, isWinner = false }) {
   return (
-    <div style={{ textAlign: 'center', flex: 1 }}>
+    <div style={{
+      textAlign: 'center', flex: 1,
+      borderRadius: 8,
+      background: isWinner ? 'rgba(74,222,128,0.07)' : 'transparent',
+      padding: '6px 2px',
+      transition: 'background 0.2s',
+    }}>
       <div style={{
         fontSize: 22, fontWeight: 900,
         fontFamily: 'var(--font-mono)',
         color,
         lineHeight: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
       }}>
         {value?.toFixed(1) ?? '—'}
+        {isWinner && (
+          <span style={{ fontSize: 9, color: '#4ADE80', lineHeight: 1, marginTop: -8, marginLeft: 1 }}>▲</span>
+        )}
       </div>
       <div style={{
         fontSize: 10, fontWeight: 700,
         letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: 'var(--text-muted)', marginTop: 4,
+        color: isWinner ? '#4ADE80' : 'var(--text-muted)', marginTop: 4,
       }}>
         {label}
       </div>
@@ -254,9 +264,17 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
+// ── Winner helper ─────────────────────────────────────────────────────────────
+
+function isWinnerStat(myVal, theirVal, lowerIsBetter = false) {
+  if (myVal == null || theirVal == null) return false;
+  if (myVal === theirVal) return false;
+  return lowerIsBetter ? myVal < theirVal : myVal > theirVal;
+}
+
 // ── Main PlayerCard ───────────────────────────────────────────────────────────
 
-export default function PlayerCard({ player, season, onRemove }) {
+export default function PlayerCard({ player, season, onRemove, comparePlayer = null }) {
   const [gameLog, setGameLog] = useState([]);
   const [gameLogLoading, setGameLogLoading] = useState(true);
 
@@ -370,17 +388,23 @@ export default function PlayerCard({ player, season, onRemove }) {
 
       {/* ── Core stats row — 6 bubbles ── */}
       <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
-        <StatBubble label="PTS" value={player.pts_per_game} color="var(--text-primary)" />
+        <StatBubble label="PTS" value={player.pts_per_game} color="var(--text-primary)"
+          isWinner={comparePlayer ? isWinnerStat(player.pts_per_game, comparePlayer.pts_per_game) : false} />
         <VSep />
-        <StatBubble label="REB" value={player.reb_per_game} color="var(--text-primary)" />
+        <StatBubble label="REB" value={player.reb_per_game} color="var(--text-primary)"
+          isWinner={comparePlayer ? isWinnerStat(player.reb_per_game, comparePlayer.reb_per_game) : false} />
         <VSep />
-        <StatBubble label="AST" value={player.ast_per_game} color="var(--text-primary)" />
+        <StatBubble label="AST" value={player.ast_per_game} color="var(--text-primary)"
+          isWinner={comparePlayer ? isWinnerStat(player.ast_per_game, comparePlayer.ast_per_game) : false} />
         <VSep />
-        <StatBubble label="BLK" value={player.blk_per_game} color="var(--text-primary)" />
+        <StatBubble label="BLK" value={player.blk_per_game} color="var(--text-primary)"
+          isWinner={comparePlayer ? isWinnerStat(player.blk_per_game, comparePlayer.blk_per_game) : false} />
         <VSep />
-        <StatBubble label="STL" value={player.stl_per_game} color="var(--text-primary)" />
+        <StatBubble label="STL" value={player.stl_per_game} color="var(--text-primary)"
+          isWinner={comparePlayer ? isWinnerStat(player.stl_per_game, comparePlayer.stl_per_game) : false} />
         <VSep />
-        <StatBubble label="TOV" value={player.tov_per_game} color="var(--text-primary)" />
+        <StatBubble label="TOV" value={player.tov_per_game} color="var(--text-primary)"
+          isWinner={comparePlayer ? isWinnerStat(player.tov_per_game, comparePlayer.tov_per_game, true) : false} />
       </div>
 
       <Divider />
@@ -446,29 +470,32 @@ export default function PlayerCard({ player, season, onRemove }) {
 
       <Divider />
 
-      {/* ── Bar chart ── */}
-      <SectionLabel>Season Stats Chart</SectionLabel>
-      <ResponsiveContainer width="100%" height={160}>
-        <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-            axisLine={false} tickLine={false}
-          />
-          <YAxis
-            tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-            axisLine={false} tickLine={false}
-          />
-          <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
-            {chartData.map((entry, i) => (
-              <Cell key={i} fill={entry.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      <Divider />
+      {/* ── Bar chart — hidden in comparison mode (grouped chart shown above instead) ── */}
+      {!comparePlayer && (
+        <>
+          <SectionLabel>Season Stats Chart</SectionLabel>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                axisLine={false} tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                axisLine={false} tickLine={false}
+              />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                {chartData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <Divider />
+        </>
+      )}
 
       {/* ── Recent game log ── */}
       <SectionLabel>Recent Games</SectionLabel>

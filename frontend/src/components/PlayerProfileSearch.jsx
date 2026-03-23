@@ -1,8 +1,80 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { searchPlayers } from '../api';
 import PlayerCard from './PlayerCard';
 import PlayerTable from './PlayerTable';
 import { getTeamLogoUrl } from '../utils/teamLogos';
+
+// ── Grouped comparison chart ───────────────────────────────────────────────────
+
+function ComparisonChart({ p1, p2 }) {
+  const data = [
+    { name: 'PTS', [p1.player_name]: p1.pts_per_game ?? 0, [p2.player_name]: p2.pts_per_game ?? 0 },
+    { name: 'REB', [p1.player_name]: p1.reb_per_game ?? 0, [p2.player_name]: p2.reb_per_game ?? 0 },
+    { name: 'AST', [p1.player_name]: p1.ast_per_game ?? 0, [p2.player_name]: p2.ast_per_game ?? 0 },
+    { name: 'BLK', [p1.player_name]: p1.blk_per_game ?? 0, [p2.player_name]: p2.blk_per_game ?? 0 },
+    { name: 'STL', [p1.player_name]: p1.stl_per_game ?? 0, [p2.player_name]: p2.stl_per_game ?? 0 },
+    { name: 'TOV', [p1.player_name]: p1.tov_per_game ?? 0, [p2.player_name]: p2.tov_per_game ?? 0 },
+  ];
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{
+        background: 'var(--bg-card-2)', border: '1px solid var(--border-light)',
+        borderRadius: 8, padding: '8px 12px', fontSize: 12,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+      }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
+          {label}
+        </div>
+        {payload.map((entry) => (
+          <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: entry.fill, flexShrink: 0 }} />
+            <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{entry.name}</span>
+            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontWeight: 700, marginLeft: 4 }}>
+              {entry.value?.toFixed(1)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card-2)',
+      border: '1px solid var(--border-light)',
+      borderRadius: 16, padding: 24, marginBottom: 32,
+    }}>
+      <p style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+        textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 14px',
+      }}>
+        Head-to-Head Comparison
+      </p>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
+        {[{ name: p1.player_name, color: '#F0F4FB' }, { name: p2.player_name, color: '#6B82A0' }].map(({ name, color }) => (
+          <span key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+            {name}
+          </span>
+        ))}
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barGap={4} barCategoryGap="30%">
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+          <Bar dataKey={p1.player_name} fill="#F0F4FB" radius={[3, 3, 0, 0]} maxBarSize={28} />
+          <Bar dataKey={p2.player_name} fill="#6B82A0" radius={[3, 3, 0, 0]} maxBarSize={28} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 export default function PlayerProfileSearch({ season }) {
   const [query, setQuery] = useState('');
@@ -156,17 +228,28 @@ export default function PlayerProfileSearch({ season }) {
 
       {/* Comparison area */}
       {selected.length > 0 && (
-        <div style={{ display: 'flex', gap: 20, marginBottom: 32, flexWrap: 'wrap' }}>
-          {selected.map(player => (
-            <div key={player.player_id} style={{ flex: 1, minWidth: 300 }}>
-              <PlayerCard
-                player={player}
-                season={season}
-                onRemove={() => removePlayer(player.player_id)}
-              />
-            </div>
-          ))}
-        </div>
+        <>
+          <div style={{ display: 'flex', gap: 20, marginBottom: selected.length === 2 ? 20 : 32, flexWrap: 'wrap' }}>
+            {selected.map((player, idx) => {
+              const other = selected.length === 2 ? selected[1 - idx] : null;
+              return (
+                <div key={player.player_id} style={{ flex: 1, minWidth: 300 }}>
+                  <PlayerCard
+                    player={player}
+                    season={season}
+                    onRemove={() => removePlayer(player.player_id)}
+                    comparePlayer={other}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Grouped chart shown below cards only when 2 players are selected */}
+          {selected.length === 2 && (
+            <ComparisonChart p1={selected[0]} p2={selected[1]} />
+          )}
+        </>
       )}
 
       {/* Top-50 table */}

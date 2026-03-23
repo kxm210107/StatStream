@@ -51,6 +51,31 @@ with engine.connect() as _conn:
         _conn.execute(_text("ALTER TABLE player_stats ADD COLUMN position VARCHAR"))
         _conn.commit()
 
+# Add new stat columns (IF NOT EXISTS — safe to run every deploy)
+_NEW_STAT_COLS = [
+    ("gp",           "FLOAT"),
+    ("min_per_game", "FLOAT"),
+    ("blk_per_game", "FLOAT"),
+    ("stl_per_game", "FLOAT"),
+    ("tov_per_game", "FLOAT"),
+    ("fg_pct",       "FLOAT"),
+    ("fg3_pct",      "FLOAT"),
+    ("ft_pct",       "FLOAT"),
+    ("plus_minus",   "FLOAT"),
+    ("ts_pct",       "FLOAT"),
+    ("net_rating",   "FLOAT"),
+]
+with engine.connect() as _conn:
+    _dialect = engine.dialect.name
+    for _col, _type in _NEW_STAT_COLS:
+        if _dialect == "sqlite":
+            _existing = [r[1] for r in _conn.execute(_text("PRAGMA table_info(player_stats)")).fetchall()]
+            if _col not in _existing:
+                _conn.execute(_text(f"ALTER TABLE player_stats ADD COLUMN {_col} {_type}"))
+        else:
+            _conn.execute(_text(f"ALTER TABLE player_stats ADD COLUMN IF NOT EXISTS {_col} {_type}"))
+    _conn.commit()
+
 app = FastAPI(title="StatStream API", version="2.0")
 
 # ── Rate limiting ─────────────────────────────────────────────────────────────

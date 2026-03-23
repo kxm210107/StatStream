@@ -16,15 +16,15 @@ const COLUMNS = [
 ];
 
 const STAT_COLORS = {
-  pts_per_game: '#22D3EE',
-  reb_per_game: '#4ADE80',
-  ast_per_game: '#F97316',
+  pts_per_game: 'var(--text-primary)',
+  reb_per_game: 'var(--text-primary)',
+  ast_per_game: 'var(--text-primary)',
 };
 
 const LEGEND = [
-  ['PTS', '#22D3EE'],
-  ['REB', '#4ADE80'],
-  ['AST', '#F97316'],
+  ['PTS', 'var(--text-primary)'],
+  ['REB', 'var(--text-primary)'],
+  ['AST', 'var(--text-primary)'],
 ];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -303,7 +303,7 @@ export default function PlayerTable({ season = '2024-25', onPlayerClick = null, 
                     {/* PTS */}
                     <TD align="right" style={{
                       fontWeight: 700,
-                      color: '#22D3EE',
+                      color: 'var(--text-primary)',
                       fontFamily: 'var(--font-mono)',
                     }}>
                       {p.pts_per_game?.toFixed(1)}
@@ -312,7 +312,7 @@ export default function PlayerTable({ season = '2024-25', onPlayerClick = null, 
                     {/* REB */}
                     <TD align="right" style={{
                       fontWeight: 700,
-                      color: '#4ADE80',
+                      color: 'var(--text-primary)',
                       fontFamily: 'var(--font-mono)',
                     }}>
                       {p.reb_per_game?.toFixed(1)}
@@ -321,7 +321,7 @@ export default function PlayerTable({ season = '2024-25', onPlayerClick = null, 
                     {/* AST */}
                     <TD align="right" style={{
                       fontWeight: 700,
-                      color: '#F97316',
+                      color: 'var(--text-primary)',
                       fontFamily: 'var(--font-mono)',
                     }}>
                       {p.ast_per_game?.toFixed(1)}

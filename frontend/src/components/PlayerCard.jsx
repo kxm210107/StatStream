@@ -276,11 +276,11 @@ export default function PlayerCard({ player, season, onRemove }) {
   const teamLogoUrl = getTeamLogoUrl(player.team);
 
   const chartData = [
-    { name: 'PTS', value: player.pts_per_game ?? 0, color: '#22D3EE' },
-    { name: 'REB', value: player.reb_per_game ?? 0, color: '#4ADE80' },
-    { name: 'AST', value: player.ast_per_game ?? 0, color: '#F97316' },
-    { name: 'BLK', value: player.blk_per_game ?? 0, color: '#A78BFA' },
-    { name: 'STL', value: player.stl_per_game ?? 0, color: '#F43F5E' },
+    { name: 'PTS', value: player.pts_per_game ?? 0, color: '#F0F4FB' },
+    { name: 'REB', value: player.reb_per_game ?? 0, color: '#F0F4FB' },
+    { name: 'AST', value: player.ast_per_game ?? 0, color: '#F0F4FB' },
+    { name: 'BLK', value: player.blk_per_game ?? 0, color: '#F0F4FB' },
+    { name: 'STL', value: player.stl_per_game ?? 0, color: '#F0F4FB' },
   ];
 
   return (
@@ -388,9 +388,9 @@ export default function PlayerCard({ player, season, onRemove }) {
       {/* ── Shooting splits ── */}
       <SectionLabel>Shooting Splits</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <ShootingBar label="FG%" pct={player.fg_pct} color="#22D3EE" />
-        <ShootingBar label="3P%" pct={player.fg3_pct} color="#A78BFA" />
-        <ShootingBar label="FT%" pct={player.ft_pct} color="#4ADE80" />
+        <ShootingBar label="FG%" pct={player.fg_pct} color="var(--accent)" />
+        <ShootingBar label="3P%" pct={player.fg3_pct} color="var(--accent)" />
+        <ShootingBar label="FT%" pct={player.ft_pct} color="var(--accent)" />
       </div>
 
       <Divider />

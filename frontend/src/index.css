@@ -39,10 +39,10 @@
   --green:         #4ADE80;
   --orange:        #F97316;
 
-  /* ── Stat hierarchy — bold broadcast tones ── */
-  --stat-pts:      #22D3EE;
-  --stat-reb:      #4ADE80;
-  --stat-ast:      #F97316;
+  /* ── Stat hierarchy ── */
+  --stat-pts:      #F0F4FB;
+  --stat-reb:      #F0F4FB;
+  --stat-ast:      #F0F4FB;
 
   /* ── Font stacks ── */
   --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;

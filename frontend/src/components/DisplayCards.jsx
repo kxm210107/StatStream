@@ -49,23 +49,23 @@ const STAT_PRESETS = {
   pts: {
     label:  'PTS',
     field:  'pts_per_game',
-    color:  '#22D3EE',
-    bg:     'rgba(34,211,238,0.08)',
-    border: 'rgba(34,211,238,0.2)',
+    color:  'var(--text-primary)',
+    bg:     'rgba(240,244,251,0.06)',
+    border: 'rgba(240,244,251,0.12)',
   },
   reb: {
     label:  'REB',
     field:  'reb_per_game',
-    color:  '#4ADE80',
-    bg:     'rgba(74,222,128,0.08)',
-    border: 'rgba(74,222,128,0.2)',
+    color:  'var(--text-primary)',
+    bg:     'rgba(240,244,251,0.06)',
+    border: 'rgba(240,244,251,0.12)',
   },
   ast: {
     label:  'AST',
     field:  'ast_per_game',
-    color:  '#F97316',
-    bg:     'rgba(249,115,22,0.08)',
-    border: 'rgba(249,115,22,0.2)',
+    color:  'var(--text-primary)',
+    bg:     'rgba(240,244,251,0.06)',
+    border: 'rgba(240,244,251,0.12)',
   },
 };
 
